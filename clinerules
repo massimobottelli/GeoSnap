@@ -1,0 +1,262 @@
+# GeoSnap — Cline Rules
+
+## Project snapshot
+GeoSnap is a mobile-first educational web game: the player drags country shapes from a
+scrollable tray onto an SVG map of Europe; on release, shapes near the correct position
+snap into place. Single player only in MVP1. No backend, no network, no persistence,
+no sounds. Language: Italian. Theme: light, lime accent.
+Key documents: functional requirements (behavior) and technical design (architecture).
+Both are authoritative — see Section 1.
+
+## 1. Source of truth
+Before making any implementation decision, read the relevant project documentation.
+Priority order:
+1. `doc/functional-requirements-mvp1.md`
+2. `doc/technical-design-mvp1.md`
+3. `doc/implementation-plan-mvp1.md`
+4. Existing source code and tests
+Functional requirements are authoritative for application behavior.
+The technical design is authoritative for architectural and technology decisions.
+**Never change a functional requirement to make an implementation easier.**
+Every game behavior must map to a requirement ID (RF-xx). If an implementation appears to
+conflict with the functional requirements, stop and ask for clarification.
+
+## 2. General working rules
+Work incrementally.
+Before making a non-trivial change:
+1. Inspect the relevant existing code.
+2. Read the relevant requirements/design sections.
+3. Identify the affected components.
+4. Make the smallest coherent change.
+5. Run the relevant tests.
+6. Review the resulting diff.
+Do not perform unrelated refactoring while implementing a feature.
+Do not introduce abstractions merely because they might be useful in the future.
+Prefer simple, explicit code over sophisticated abstractions.
+
+## 3. Architecture
+GeoSnap MVP1 is a single-page web application with **no backend**.
+```text
+Browser
+   |
+   v
+React / TypeScript / Vite
+   |
+   v
+Static hosting (GitHub Pages)
+```
+There is no server, no API, no database. All game data is bundled at build time.
+The application must not:
+* perform any network request at runtime;
+* load fonts, tiles, images or datasets from CDNs or remote URLs;
+* use `fetch`, `XMLHttpRequest`, or WebSocket anywhere in application code.
+The app must work fully offline from the first load after install.
+
+## 4. Stack
+Runtime stack:
+* React
+* TypeScript (strict mode)
+* Vite
+* Tailwind CSS
+* SVG rendering (map = one `<svg>` element with viewBox)
+* d3-zoom (zoom/pan only)
+* Pointer Events (drag)
+Allowed runtime dependencies are limited to: `react`, `react-dom`, `d3-zoom`.
+Any additional runtime dependency requires explicit confirmation.
+Do not introduce:
+* component libraries (MUI, Chakra, shadcn, etc.);
+* map libraries (Leaflet, MapLibre, OpenLayers);
+* canvas/WebGL rendering for the map;
+* state-management libraries (Redux, Zustand, MobX, XState) — use React state;
+* utility libraries (lodash, ramda, moment, axios, uuid) unless explicitly requested.
+
+## 5. Separation of game logic and UI
+All game decisions (scoring, shuffle, snap evaluation, game flow, end condition) live in
+```text
+src/game/
+```
+as pure, strongly-typed functions operating on immutable state (reducer style).
+**Hard rules:**
+* `src/game/**` must not import React or DOM APIs — the only sanctioned exception is
+  `src/game/evaluation/rasterize.ts`, which is isolated and mockable in tests.
+* Components in `src/components/**` are presentation and event binding only.
+  They must not contain game rules.
+* No module-level mutable state in `src/game/**`.
+* Game logic must be unit-testable without a DOM.
+
+## 6. Drag interaction
+Drag is implemented with **Pointer Events** (`pointerdown/move/up/cancel` +
+`setPointerCapture`). Never use HTML5 Drag & Drop.
+Hard rules:
+* During a drag, the dragged shape's position is updated **imperatively** by writing the
+  `transform` attribute on the SVG element (via ref). **No `setState` in the drag loop.**
+* State is committed exactly once, on `pointerup`: the snap is evaluated, the game state
+  updated, and React re-renders once.
+* During the drag there must be **no predictive feedback of any kind**: no snapping,
+  no highlighting, no visual change near the correct position, no ghost target (RF-16).
+* `pointercancel` / pointer lost: the shape animates back to the tray and does not count
+  as a failed attempt.
+* Zoom/pan gestures must be disabled while a drag is active (RF-22).
+* The tray is a separate DOM strip outside the map `<svg>`: map zoom/pan must never
+  affect the tray.
+
+## 7. Zoom and pan
+Use `d3-zoom` on the map `<svg>` only. Do not hand-roll pinch handling.
+* `scaleExtent` and `translateExtent` are computed from the data bounding box, not hardcoded.
+* Use `zoom.filter()` to reject gesture events while a piece is being dragged.
+* Do not introduce inertial smoothing, double-tap behaviors, or zoom controls beyond what
+  the requirements ask for.
+
+## 8. Snap evaluation
+Snap is evaluated **only on release**, by **area overlap**:
+1. The target path and the released path (at its drop transform) are rasterized onto
+   offscreen canvases at a normalized resolution (`RASTER_SIZE`).
+2. Overlap = opaque pixels in both rasters / opaque pixels of the target raster.
+3. Snap succeeds iff `overlap >= MIN_OVERLAP_RATIO`.
+Hard rules:
+* Only the piece's own correct position is evaluated — there is no snapping to wrong
+  positions (RF-20).
+* Do not replace this with centroid-distance or bbox-distance evaluation.
+* The tolerance must remain proportional to nation size (inherent to the overlap method)
+  and parameterized via `tuning.ts` (RF-19).
+* The evaluation is pure and covered by unit tests; canvas access stays in `rasterize.ts`.
+
+## 9. Tuning parameters
+All calibratable values live in one place:
+```text
+src/tuning.ts
+```
+This includes at minimum: snap threshold (`MIN_OVERLAP_RATIO`), raster size, point scale
+(100/50/25/0), minimum tray piece size, minimum hit area (44×44 px), quick-game subset size
+(MVP2 placeholder).
+Rules:
+* No magic numbers in components or game logic — import from `tuning.ts`.
+* Changing a tuning value must never require code changes outside `tuning.ts`.
+* Do not hardcode values that the functional requirements declare parametric.
+
+## 10. Generated geographic data
+```text
+src/data/europe-shapes.json
+```
+is a **generated artifact**. Never hand-edit it.
+It is produced by:
+```text
+scripts/generate-map.mjs
+```
+which: loads Natural Earth (world-atlas TopoJSON), filters Europe, applies the
+**Equal Earth** projection, simplifies geometry, and bakes SVG paths.
+Rules:
+* No geographic or projection library at runtime (`d3-geo` etc. are build-time only).
+* Country names in Italian come from the ISO-A3 mapping in `src/data/nations.ts`, not from
+  dataset properties.
+* Microstates are rendered as non-interactive gray territory (RF-06): they exist in the
+  map data but never in the playable set.
+* All shapes share one planar coordinate system; the same `pathD` is used for the map
+  rendering and the tray thumbnails (single source of truth).
+* If the map data needs changing, re-run the script — do not patch JSON by hand.
+
+## 11. UI behavior rules
+* No onboarding, tutorial, or intro screens (RF-01/49): the game starts immediately.
+* MVP1 offers Europe only: do not add continent selection screens (RF-02).
+* The tray shows each shape with a readable Italian label (RF-10).
+* Minimum touch target: every tray piece has a transparent hit rectangle of at least
+  `44×44` px, independent of the nation's real size (RF-11).
+* Progress counter and current score are always visible during play (RF-12/25).
+* On successful snap, the country takes the "placed" color and its name appears on the
+  map (RF-14).
+* Failed release: the shape returns to the tray with a **neutral, non-punitive**
+  animation (RF-18). No malus, no negative feedback styling.
+* **No sounds anywhere in the app** (RF-28). Feedback is exclusively visual (RF-29).
+* Timer: measured internally, never displayed during play, shown only in the summary (RF-32).
+* No helpers of any kind in MVP1: no hints, no skip, no practice mode (RF-30).
+
+## 12. Scoring and game flow
+Scoring per nation (RF-23): 1st attempt 100, 2nd 50, 3rd 25, 4th+ 0.
+* Unlimite attempts; the game is always completable; brute-force is only punished by
+  the score itself (RF-24).
+* Every failed release increments that nation's failed-attempt counter (RF-26).
+* No time-based scoring in MVP1 (RF-27).
+* End of game: when all playable nations are placed → summary screen with total score,
+  max score, accuracy percentage, total time (informational), and the list of nations
+  with errors (RF-31).
+* "Gioca ancora" starts a fresh game with a new random shuffle (RF-34).
+* Implement these rules only in `src/game/` pure modules; keep them in one place.
+
+## 13. Shuffle and randomness
+Tray order is randomized per game (RF-04). Use a uniform shuffle (e.g. Fisher–Yates) over
+the playable set. Do not seed, do not persist order, do not introduce weighted or
+"educational" ordering unless explicitly requested.
+
+## 14. Persistence
+**MVP1 has no persistence of any kind.** Do not use:
+* `localStorage`;
+* `sessionStorage`;
+* `indexedDB`;
+* cookies.
+Abandoning the game loses it; a new game starts from scratch (RF-33).
+The MVP2 persistence decision (localStorage for nickname + statistics) is documented in the
+technical design; do not implement it ahead of time.
+
+## 15. Theme and accessibility
+* Light theme; accent color **lime**, applied consistently to titles, buttons, interactive
+  elements (RF-46).
+* Colors are defined as CSS variables in one place; components reference tokens, not raw hex.
+* The distinction "placed vs. to-place" must be perceivable without relying on red/green
+  hue alone (RF-47): vary also lightness and/or saturation, or use another channel.
+* Text contrast: WCAG AA minimum on all labels, including tray labels on small shapes.
+* Touch targets ≥ 44×44 px (RF-11).
+* All UI text is **Italian** (RF-48). Nation names are the standard Italian names.
+
+## 16. PWA and deployment
+The app is a PWA: `manifest.webmanifest` with app name GeoSnap, icons, standalone display,
+theme color matching the lime accent.
+* Deploy target: Vite static build to GitHub Pages. Base path configured for project pages.
+* Do not add a service worker unless explicitly requested (the bundle is already
+  self-contained offline).
+* Do not add analytics, telemetry, or error-tracking.
+
+## 17. Testing
+MVP1 requires:
+* **unit tests** (Vitest) for `src/game/**`: scoring, attempts, shuffle, snap evaluation
+  (with mocked rasters), end condition, summary computation;
+* **Playwright smoke E2E** with touch emulation for the core flow: start → successful drag
+  and snap → failed drop returns to tray → summary screen appears at completion.
+Rules:
+* Tests for game logic must not require a DOM.
+* Do not weaken tests to make an implementation pass.
+* If a test conflicts with the functional requirements, investigate the discrepancy
+  instead of blindly changing the test.
+* Do not add visual-regression or screenshot-diff infrastructure in MVP1.
+
+## 18. Test discipline
+When adding or changing game behavior: add/update unit tests in `src/game/**`.
+When changing drag, zoom, or rendering behavior: update the relevant Playwright smoke test.
+Keep tests fast; do not add long-running E2E suites beyond the agreed smoke set.
+
+## 19. Dependencies
+Prefer the existing stack.
+Before adding a dependency, ask:
+1. Is it actually necessary?
+2. Can the requirement be implemented clearly with React, SVG, d3-zoom and the Web APIs?
+3. Does it introduce architectural complexity?
+4. Is it consistent with `doc/technical-design-mvp1.md`?
+Do not add dependencies merely for convenience.
+Dev dependencies (Vitest, Playwright, ESLint, Prettier, build-time geo tooling) are fine.
+
+## 20. No premature infrastructure
+Do not introduce infrastructure for hypothetical future requirements (MVP2 features,
+other continents, multiplayer, backend, accounts).
+MVP1 does not use:
+* a backend of any kind;
+* a service worker / offline cache layer;
+* i18n libraries (the app is Italian-only);
+* routing libraries (single screen flow);
+* analytics or monitoring.
+Future scalability must not complicate MVP1.
+MVP2 preparatory work is allowed only as isolated, non-invasive structure (e.g. the
+`tuning.ts` placeholder for the quick-game subset size).
+
+## 21. Performance
+* The drag loop must not trigger React re-renders (see Section 6).
+* The game must run at 60 fps during drag on a mid-range mobile device.
+* Keep the bundle lean: runtime dependencies are limited to `react`, `
