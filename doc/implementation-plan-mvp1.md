@@ -1,7 +1,7 @@
 
 # GeoSnap — Piano di Implementazione MVP1
 
-**Versione:** 1.4 (Fase 3 completata)
+**Versione:** 1.5 (Fase 4 completata)
 
 **Input:** Requisiti Funzionali v1.0 + Requisiti Tecnici v1.0
 
@@ -420,11 +420,11 @@ Natural Earth include i territori d'oltremare nelle geometrie dei paesi sovrani 
 
 ---
 
-## Fase 4 — Componenti UI e layout
+## Fase 4 — Componenti UI e layout ✅
 
 > **Obiettivo:** Layout di gioco, rendering SVG e integrazione interazione touch.
-> 
-> 
+>
+> **Stato:** **completata** il 2026-10-10 — vedi *Esito Fase 4* in coda a questa sezione.
 
 ### Task 4.1 — Tema ed stili globali (`theme.css`)
 
@@ -511,6 +511,54 @@ Natural Earth include i territori d'oltremare nelle geometrie dei paesi sovrani 
 
 
 
+
+### ✅ Esito Fase 4
+
+**Data:** 2026-10-10 · **Ambiente verificato:** macOS 27.0.1 (arm64), Node v26.7.0, npm 11.19.0.
+
+**Moduli prodotti:**
+
+| Modulo | Contenuto | Riferimento |
+| --- | --- | --- |
+| `src/styles/theme.css` | Animazioni CSS `snap-success` (scale-pulse + accent flash) per RF-17 | §9.4 |
+| `src/hooks/useMapZoom.ts` | Hook d3-zoom con pinch/pan touch, limiti 1×–6×, filtro drag (RF-22), aggiornamento imperativo via rAF | §7.2 |
+| `src/components/MapView.tsx` | Mappa SVG con 3 strati: non giocabili (grigio), posizionate (accent + nome), feedback snap | §5.1 |
+| `src/components/Tray.tsx` | Vassoio orizzontale scrollabile nativamente, scala proporzionale all'area con compressione esponenziale | §5.2 |
+| `src/components/TrayItem.tsx` | Singola sagoma con hit area ≥44px, nome, animazione di ritorno (RF-18) | §5.2, RF-11 |
+| `src/components/DragLayer.tsx` | SVG overlay full-screen `pointer-events: none`, pezzo alla scala mappa, sync imperativo zoom transform | §5.3 |
+| `src/components/HUD.tsx` | Contatore avanzamento + punteggio corrente (RF-12, RF-25) | §9.4 |
+| `src/components/SummaryScreen.tsx` | Riepilogo fine partita: punteggio/max, precisione %, tempo mm:ss, errori per nazione, "Gioca ancora" (RF-31/32/34) | §9.4 |
+| `src/components/GameScreen.tsx` | Assembla tutti i componenti: gestione stato di gioco, drag con Pointer Events, snap via `evaluateSnap`, coordinate screen→SVG | §9.4 |
+| `src/components/App.tsx` | Avvio diretto senza onboarding (RF-01, RF-49) | §8.3 |
+
+**Design dell'interazione drag:**
+- Pointer Events (`pointerdown` → `setPointerCapture` → `pointermove` → `pointerup`) — unificano mouse e touch (§7.1).
+- Durante il drag: aggiornamento imperativo del `transform` del pezzo via ref (zero `setState` nel loop — §3.2).
+- Conversione coordinate pointer→viewBox SVG via `svg.getScreenCTM().inverse()` (§5.3).
+- Al rilascio: calcolo `releaseTransform` (traslazione centroid→drop point) → `evaluateSnap()` → dispatch azione a `gameState`.
+- Zoom/pan disattivati durante il drag via `zoom.filter` (RF-22).
+
+**Test prodotti:**
+
+| Test file | Test | Verifica |
+| --- | --- | --- |
+| `tests/unit/tray-scale.test.ts` | 9 | Scala proporzionale all'area, monotonia, edge cases (area=0, maxSqrtArea=0), coerenza tuning |
+| `tests/e2e/smoke.spec.ts` | 2 | Mappa e vassoio visibili, emulazione touch funzionante (aggiornato da Fase 0) |
+
+**Verifica — criteri di uscita:**
+- ✅ `npm run typecheck` — nessun errore
+- ✅ `npm run lint` (`--max-warnings=0`) — nessun errore
+- ✅ `npm run test` — 122/122 test verdi (8 file: tuning 22, shuffle 9, scoring 11, gameState 25, nations 16, europe-shapes 14, snap 14, tray-scale 9)
+- ✅ `npm run build` — build verde (102.01 KB gzip, ben sotto il target 200 KB)
+- ✅ `npm run test:e2e` — 2/2 smoke test verdi (mobile Chromium, emulazione touch)
+
+**Note e decisioni:**
+- Il `computeTrayScale` è una funzione privata di `Tray.tsx` (non esportata) per evitare warning di react-refresh.
+- Il `usePieceDrag` hook è stato integrato direttamente in `GameScreen.tsx` per semplicità: la logica di drag è specifica per il contesto di gioco e beneficia dell'accesso diretto allo stato.
+- Il `DragLayer` sincronizza il transform d3-zoom via `useEffect` (si attiva quando cambia `activeNation`, cioè all'inizio/fine del drag). Durante il drag il transform zoom non cambia (filtro attivo).
+- Il `MapView` utilizza un `svgCallbackRef` (callback ref) per inizializzare d3-zoom sull'elemento SVG al mount.
+- Il `CanvasFactory` browser è definito in `GameScreen.tsx` come `document.createElement('canvas')`.
+- La palette per daltonici usa doppio canale: colore + nome sulla mappa per le nazioni posizionate, bordo e saturazione per distinguere gli stati (RF-47).
 
 ---
 

@@ -39,13 +39,13 @@ describe('shuffle.ts — Fisher-Yates (Fase 2, Task 2.2)', () => {
     expect(new Set(result).size).toBe(result.length);
   });
 
-  it('non muta l\'array originale', () => {
+  it("non muta l'array originale", () => {
     const original = [...TEST_IDS];
     shuffleNationIds(TEST_IDS);
     expect(TEST_IDS).toEqual(original);
   });
 
-  it('con RNG seeded, l\'ordine è deterministico', () => {
+  it("con RNG seeded, l'ordine è deterministico", () => {
     const rng1 = seededRng(42);
     const rng2 = seededRng(42);
     const result1 = shuffleNationIds(TEST_IDS, rng1);
@@ -53,7 +53,7 @@ describe('shuffle.ts — Fisher-Yates (Fase 2, Task 2.2)', () => {
     expect(result1).toEqual(result2);
   });
 
-  it('con seed diversi, l\'ordine è diverso', () => {
+  it("con seed diversi, l'ordine è diverso", () => {
     const result1 = shuffleNationIds(TEST_IDS, seededRng(1));
     const result2 = shuffleNationIds(TEST_IDS, seededRng(999));
     // Con alta probabilità gli ordini sono diversi.

@@ -1,18 +1,20 @@
 import { expect, test } from '@playwright/test';
 
 /**
- * Smoke test E2E (Fase 0, Task 0.2).
+ * Smoke test E2E (aggiornato per Fase 4).
  *
  * Verifica che l'applicazione si avvii correttamente in un contesto mobile con
- * emulazione touch. La copertura dei flussi di gioco (drag, snap, riepilogo)
- * appartiene alla Fase 6.
+ * emulazione touch e che gli elementi principali del gioco siano visibili.
  */
 test.describe('GeoSnap — avvio applicazione', () => {
-  test('la shell di gioco viene visualizzata', async ({ page }) => {
+  test('la mappa e il vassoio vengono visualizzati', async ({ page }) => {
     await page.goto('/');
 
     await expect(page).toHaveTitle(/GeoSnap/i);
-    await expect(page.getByRole('heading', { name: 'GeoSnap' })).toBeVisible();
+    // La mappa SVG è visibile
+    await expect(page.locator('svg').first()).toBeVisible();
+    // Il vassoio è visibile (contiene nazioni)
+    await expect(page.locator('[data-nation-id]').first()).toBeVisible();
   });
 
   test('il contesto emula un dispositivo touch', async ({ page }) => {

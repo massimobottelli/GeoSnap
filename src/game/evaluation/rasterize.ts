@@ -47,14 +47,7 @@ export const IDENTITY_TRANSFORM: CanvasTransform = Object.freeze({
 
 /** Interfaccia minima per il contesto 2D di un canvas. */
 export interface CanvasContext2DLike {
-  setTransform(
-    a: number,
-    b: number,
-    c: number,
-    d: number,
-    e: number,
-    f: number,
-  ): void;
+  setTransform(a: number, b: number, c: number, d: number, e: number, f: number): void;
   clearRect(x: number, y: number, w: number, h: number): void;
   fill(fillRuleOrPath?: unknown): void;
   getImageData(
@@ -78,10 +71,7 @@ export interface CanvasElementLike {
  * In produzione: `document.createElement('canvas')` o `OffscreenCanvas`.
  * In test: mock che restituisce pixel preconfigurati.
  */
-export type CanvasFactory = (
-  width: number,
-  height: number,
-) => CanvasElementLike;
+export type CanvasFactory = (width: number, height: number) => CanvasElementLike;
 
 // ── Funzione principale ────────────────────────────────────────────────────
 

@@ -52,12 +52,12 @@ describe('gameState.ts — reducer di gioco (Fase 2, Task 2.3)', () => {
       }
     });
 
-    it('contiene tutti gli ID nell\'ordine del vassoio', () => {
+    it("contiene tutti gli ID nell'ordine del vassoio", () => {
       const state = startGame(NATION_IDS, seededRng(42), NOW);
       expect([...state.trayOrder].sort()).toEqual([...NATION_IDS].sort());
     });
 
-    it('con RNG seeded, l\'ordine è deterministico', () => {
+    it("con RNG seeded, l'ordine è deterministico", () => {
       const s1 = startGame(NATION_IDS, seededRng(42), NOW);
       const s2 = startGame(NATION_IDS, seededRng(42), NOW);
       expect(s1.trayOrder).toEqual(s2.trayOrder);

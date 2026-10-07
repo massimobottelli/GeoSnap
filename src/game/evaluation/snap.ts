@@ -21,12 +21,7 @@
  */
 
 import { tuning } from '../../tuning';
-import {
-  rasterizePath,
-  type BBox,
-  type CanvasFactory,
-  type CanvasTransform,
-} from './rasterize';
+import { rasterizePath, type BBox, type CanvasFactory, type CanvasTransform } from './rasterize';
 
 /**
  * Valuta se una sagoma rilasciata si aggancia alla posizione del target.
@@ -50,22 +45,10 @@ export function evaluateSnap(
   const size = SNAP_RASTER_SIZE;
 
   // Rasterizza il target (senza trasformazione aggiuntiva)
-  const targetPixels = rasterizePath(
-    nationPathD,
-    null,
-    targetBBox,
-    size,
-    canvasFactory,
-  );
+  const targetPixels = rasterizePath(nationPathD, null, targetBBox, size, canvasFactory);
 
   // Rasterizza la sagoma rilasciata (con releaseTransform)
-  const piecePixels = rasterizePath(
-    nationPathD,
-    releaseTransform,
-    targetBBox,
-    size,
-    canvasFactory,
-  );
+  const piecePixels = rasterizePath(nationPathD, releaseTransform, targetBBox, size, canvasFactory);
 
   // Conta pixel opachi: overlap (entrambi) e target (solo target)
   let overlapPx = 0;
