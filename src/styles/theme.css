@@ -1,0 +1,33 @@
+@import 'tailwindcss';
+
+/*
+ * GeoSnap — token di design (tema chiaro, accento verde lime — RF-46).
+ * I valori sono definiti qui una sola volta come CSS variables esposte a
+ * Tailwind v4 tramite @theme; i componenti referenziano i token, mai hex grezzi.
+ */
+@theme {
+  --color-accent: #8cd600;
+  --color-accent-strong: #5ba300; /* nazioni posizionate */
+  --color-tray: #f4f7ee;
+  --color-map-bg: #fdfcf8;
+  --color-disabled-geo: #c8ccc4; /* microstati/territori non interattivi (RF-06/07) */
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-map-bg);
+  color: #1f2933;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}

@@ -1,7 +1,7 @@
 
 # GeoSnap — Piano di Implementazione MVP1
 
-**Versione:** 1.1 (Completo e Consolidato)
+**Versione:** 1.2 (Fase 0 completata)
 
 **Input:** Requisiti Funzionali v1.0 + Requisiti Tecnici v1.0
 
@@ -36,11 +36,13 @@
 
 ---
 
-## Fase 0 — Setup del progetto e infrastruttura
+## Fase 0 — Setup del progetto e infrastruttura ✅ COMPLETATA
 
 > **Obiettivo:** Scheletro compilabile con toolchain completa e ambienti di test operativi.
+>
+> **Stato:** **completata** il 2026-10-07 — vedi *Esito Fase 0* in coda a questa sezione.
 
-### Task 0.1 — Scaffold e toolchain
+### Task 0.1 — Scaffold e toolchain ✅
 
 * Creare il progetto Vite + React 18+ + TypeScript **strict mode**.
 
@@ -73,7 +75,7 @@ tests/              # unit/, e2e/
 
 
 
-### Task 0.2 — Infrastruttura di test
+### Task 0.2 — Infrastruttura di test ✅
 
 * Configurare **Vitest** per i test unitari della logica pura (`src/game/`).
 
@@ -84,6 +86,49 @@ tests/              # unit/, e2e/
 * Creare uno smoke test e2e per verificare il caricamento dell'applicazione.
 
 
+
+### ✅ Esito Fase 0
+
+**Data:** 2026-10-07 · **Ambiente verificato:** macOS 27.0.1 (arm64), Node v26.7.0, npm 11.19.0.
+
+**Toolchain adottata (versioni verificate):**
+
+| Area | Versione |
+| --- | --- |
+| Vite | 8.3.x + `@vitejs/plugin-react` 6.x |
+| React / React DOM | 19.3.x |
+| TypeScript (strict) | 5.9.3 — **vincolato `<6.1.0`** dalla peer-range di `typescript-eslint` 8.x |
+| Tailwind CSS | 4.3.x (plugin `@tailwindcss/vite`, tema via `@theme`/CSS variables; nessuna component library) |
+| Vitest | 5.x (ambiente `node`) |
+| Playwright | 1.63.x (progetto mobile Chromium `Pixel 7`, `hasTouch: true`) |
+| ESLint | 10.x (flat config, `typescript-eslint` `strict-type-checked` ridotto) |
+| Prettier | 3.9.x |
+
+Dipendenze runtime limitate a `react`, `react-dom`, `d3-zoom` (+ `@types/d3-zoom`), come da vincolo di stack.
+
+**Deliverable prodotti:**
+
+- Albero directory completo: `src/{data,game,game/evaluation,components,hooks,styles}`, `scripts/`, `tests/{unit,e2e}`.
+- Script npm: `dev`, `build`, `preview`, `typecheck`, `lint`, `format`, `format:check`, `test`, `test:watch`, `test:e2e`, `gen:map`, `setup:macos`, `setup:linux`.
+- **`scripts/setup-macos.sh`** e **`scripts/setup-linux.sh`**: setup idempotenti (verifica/installazione Node ≥ 20, `npm ci`/`install`, download browser Playwright, ed esecuzione delle verifiche di qualità; opzioni `--skip-verify`, `--skip-browsers`).
+- Shell applicativa minima (`src/components/App.tsx`), entry point (`src/main.tsx`), tema chiaro lime (`src/styles/theme.css`), scheletro `src/tuning.ts`.
+- Stub `scripts/generate-map.mjs` (la pipeline reale è il Task 1.2 — Fase 1).
+- Configurazioni: `vite.config.ts` (base `/` in dev, `/GeoSnap/` in build), `vitest.config.ts`, `playwright.config.ts`, `eslint.config.js`, `.prettierrc.json`, `tsconfig.json`, `index.html`, `public/favicon.svg`.
+
+**Verifica — criterio di uscita M0 («Build verde, app vuota»):**
+
+- ✅ `npm run typecheck` — nessun errore
+- ✅ `npm run lint` (`--max-warnings=0`) — nessun errore (11 file analizzati)
+- ✅ `npm run test` — 2/2 test unitari verdi (smoke di infrastruttura)
+- ✅ `npm run build` — build verde (`dist/`, bundle ~68.8 KB gzip)
+- ✅ `npm run test:e2e` — 2/2 smoke test verdi (mobile Chromium, emulazione touch)
+- ✅ `bash scripts/setup-macos.sh` — eseguito end-to-end con successo
+
+**Note e limiti:**
+
+- Il **deploy** su GitHub Pages **non** è parte di questa fase: la pipeline è la Fase 7 (Task 7.1).
+- Nessuna modifica allo schema DB: MVP1 non prevede database né backend; non esistono dati di test da cancellare.
+- Nessuna logica di gioco implementata (Fasi 2+ intatte): i moduli `src/game/**` sono ancora vuoti per progetto.
 
 ---
 
