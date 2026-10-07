@@ -132,11 +132,13 @@ Dipendenze runtime limitate a `react`, `react-dom`, `d3-zoom` (+ `@types/d3-zoom
 
 ---
 
-## Fase 1 — Dati geografici e perimetro nazioni
+## Fase 1 — Dati geografici e perimetro nazioni ✅
 
 > **Obiettivo:** Elenco nazioni consolidato e pipeline di generazione `europe-shapes.json`.
+>
+> **Stato:** **completata** il 2026-10-10 — vedi *Esito Fase 1* in coda a questa sezione.
 
-### Task 1.1 — Congelamento elenco nazioni (`nations.ts`)
+### Task 1.1 — Congelamento elenco nazioni (`nations.ts`) ✅
 
 * Mantenere una lista unica tipizzata classificata in tre gruppi coerenti:
 
@@ -156,7 +158,7 @@ Dipendenze runtime limitate a `react`, `react-dom`, `d3-zoom` (+ `@types/d3-zoom
 
 
 
-### Task 1.2 — Pipeline `scripts/generate-map.mjs`
+### Task 1.2 — Pipeline `scripts/generate-map.mjs` ✅
 
 * Implementare la pipeline build-time:
 
@@ -176,8 +178,59 @@ Dipendenze runtime limitate a `react`, `react-dom`, `d3-zoom` (+ `@types/d3-zoom
 5. Emissione di `src/data/europe-shapes.json` contenente `viewBox`, `bbox`, `centroid`, `area` e `pathD`.
 
 
+### ✅ Esito Fase 1
 
+**Data:** 2026-10-10 · **Ambiente verificato:** macOS 27.0.1 (arm64), Node v26.7.0, npm 11.19.0.
 
+**Dipendenze aggiunte (devDependencies):**
+
+| Pacchetto | Uso |
+| --- | --- |
+| `world-atlas` | Dati Natural Earth 110m (TopoJSON) |
+| `topojson-client` | Conversione TopoJSON → GeoJSON |
+| `d3-geo` | Proiezione `geoEqualEarth()` e generazione path SVG |
+| `@types/topojson-client` | Tipi TypeScript per `topojson-client` |
+| `@types/d3-geo` | Tipi TypeScript per `d3-geo` |
+
+**Deliverable prodotti:**
+
+- **`src/data/nations.ts`**: Elenco completo di 48 nazioni europee classificate in 3 gruppi:
+  - `playable` (36): Albania, Austria, Belgio, Bielorussia, Bosnia-Erzegovina, Bulgaria, Croazia, Danimarca, Estonia, Finlandia, Francia, Germania, Grecia, Irlanda, Islanda, Italia, Lettonia, Lituania, Macedonia del Nord, Moldavia, Montenegro, Norvegia, Paesi Bassi, Polonia, Portogallo, Regno Unito, Repubblica Ceca, Romania, Serbia, Slovacchia, Slovenia, Spagna, Svezia, Svizzera, Ucraina, Ungheria.
+  - `microstate` (7): Andorra, Città del Vaticano, Liechtenstein, Lussemburgo, Malta, Monaco, San Marino.
+  - `nonInteractive` (5): Cipro, Kosovo, Groenlandia, Russia, Turchia.
+  - Mappatura ISO 3166-1 alpha-3 → nome italiano ufficiale.
+  - Helper functions: `getPlayableIds()`, `getMicrostateIds()`, `getNonInteractiveIds()`, `getNationNameIt()`, `isPlayable()`.
+
+- **`scripts/generate-map.mjs`**: Pipeline build-time completa.
+  - Input: `world-atlas/countries-110m.json` (Natural Earth 110m).
+  - Proiezione: `d3.geoEqualEarth()` fitted su Europa core (Russia, Turchia, Groenlandia escluse dal fit per evitare distorsione).
+  - Kosovo gestito separatamente (match per nome, assente dal dataset come ID numerico).
+  - Output: `src/data/europe-shapes.json` (43.6 KB, ben sotto il target di 150 KB).
+
+- **`src/data/europe-shapes.json`**: File generato contenente 42 nazioni:
+  - 36 giocabili + 1 microstato (Lussemburgo, unico microstato abbastanza grande per il 110m) + 5 non interattivi (Cipro, Kosovo, Groenlandia, Russia, Turchia).
+  - 6 microstati assenti dal dataset (troppo piccoli per la risoluzione 110m): Andorra, Città del Vaticano, Liechtenstein, Malta, Monaco, San Marino. Compatibile con RF-06 (nessun "buco" visibile a quella scala).
+  - Ogni nazione include: `name` (italiano), `playable` (boolean), `pathD` (SVG path), `bbox` ([x, y, w, h]), `centroid` ([cx, cy]), `area` (unità viewBox²).
+  - viewBox: `[111, 0, 738, 700]`.
+
+- **`tests/unit/nations.test.ts`**: 16 test — conteggi, coerenza dei gruppi, nomi, codici ISO, helper functions.
+
+- **`tests/unit/europe-shapes.test.ts`**: 14 test — struttura JSON, conteggi, viewBox, validità path SVG, bbox, area, nomi italiani, codici ISO, dimensione file (< 150 KB).
+
+**Verifica — criterio di uscita M1 («Mappa Europa statica renderizzata correttamente»):**
+
+- ✅ `npm run gen:map` — generazione completata (42 nazioni, 43.6 KB)
+- ✅ `npm run typecheck` — nessun errore
+- ✅ `npm run lint` (`--max-warnings=0`) — nessun errore
+- ✅ `npm run test` — 32/32 test verdi (3 file: tuning 2 + nations 16 + europe-shapes 14)
+- ✅ `npm run build` — build verde (68.82 KB gzip)
+
+**Note e limiti:**
+
+- La semplificazione geometrica aggiuntiva (`topojson-simplify`, `mapshaper`) non è stata necessaria: i dati 110m di Natural Earth sono già sufficientemente semplificati (43.6 KB totale vs target 150 KB).
+- Il viewBox è calcolato automaticamente dalle nazioni del "fit" (Europa core). Russia, Turchia e Groenlandia si estendono parzialmente oltre i bordi, il che è geograficamente corretto.
+- Kosovo non ha codice ISO 3166-1 numerico nel dataset `world-atlas`; gestito tramite match per nome ("Kosovo").
+- North Macedonia è registrata come "Macedonia" nel dataset (id `807`); mappata correttamente a `MKD`.
 
 ---
 
