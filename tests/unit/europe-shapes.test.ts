@@ -134,6 +134,26 @@ describe('europe-shapes.json — dati geografici generati (Fase 1, Task 1.2)', (
     expect(sizeKB).toBeLessThan(150);
   });
 
+  // ── Anti-regressione territori d'oltremare ─────────────────────────────
+
+  it("Francia non include territori d'oltremare (Guyana, bbox x > 250)", () => {
+    const fra = shapes.countries.FRA;
+    expect(fra).toBeDefined();
+    if (!fra) return; // type narrowing
+    // La Francia metropolitana è ad est della Spagna (x≈500+).
+    // La Guyana francese era a x≈131 prima del fix.
+    expect(fra.bbox[0]).toBeGreaterThan(250);
+  });
+
+  it('Russia non include territori siberiani (area < 10.000 unità²)', () => {
+    const rus = shapes.countries.RUS;
+    expect(rus).toBeDefined();
+    if (!rus) return; // type narrowing
+    // La Russia europea ha area ~3800; la Russia intera era ~116000.
+    expect(rus.area).toBeLessThan(10_000);
+    expect(rus.area).toBeGreaterThan(1000);
+  });
+
   // ── Codici ISO ─────────────────────────────────────────────────────────
 
   it('ogni chiave è un codice alpha-3 di 3 lettere maiuscole', () => {

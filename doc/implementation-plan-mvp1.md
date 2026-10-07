@@ -232,6 +232,16 @@ Dipendenze runtime limitate a `react`, `react-dom`, `d3-zoom` (+ `@types/d3-zoom
 - Kosovo non ha codice ISO 3166-1 numerico nel dataset `world-atlas`; gestito tramite match per nome ("Kosovo").
 - North Macedonia è registrata come "Macedonia" nel dataset (id `807`); mappata correttamente a `MKD`.
 
+**Fix territori d'oltremare (2026-10-10):**
+
+Natural Earth include i territori d'oltremare nelle geometrie dei paesi sovrani (es. Guyana francese in Francia, isole siberiane in Russia). Aggiunto filtro geografico `clipToEurope()` in `generate-map.mjs` che mantiene solo i poligoni il cui primo punto cade entro l'estensione geografica dell'Europa (lon [-75°, 60°], lat [33°, 84°]). Risultato:
+
+- Francia: rimossa la Guyana francese (MultiPolygon da 3 a 2 poligoni). bbox da `[131, 195, 499, 485]` a `[288, 377, 197, 173]`.
+- Russia: rimossi 8 poligoni d'oltremare (Siberia, isole artiche). Area da 116.186 a 3.849 unità².
+- Totale: 9 poligoni d'oltremare rimossi. File JSON da 43.6 KB a 35 KB.
+- Aggiunti 2 test anti-regressione (France bbox, Russia area).
+- `npm run test`: 34/34 verdi.
+
 ---
 
 ## Fase 2 — Core della logica pura (`src/game/`)

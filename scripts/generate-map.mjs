@@ -174,6 +174,46 @@ const PLAYABLE = new Set([
 // Escluse dal fit della proiezione (troppo grandi, distorcono l'Europa)
 const FIT_EXCLUDE = new Set(['RUS', 'TUR', 'GRL']);
 
+// Estensione geografica dell'Europa in gradi [lonMin, lonMax, latMin, latMax].
+// Usata per tagliare i territori d'oltremare (es. Guyana francese).
+const EUROPE_EXTENT = [-75, 60, 33, 84];
+
+// ── Filtro territori d'oltremare ─────────────────────────────────────────────
+
+/**
+ * Restituisce true se il primo punto dell'anello esterno cade entro
+ * l'estensione geografica dell'Europa.
+ */
+function ringInEurope(rings) {
+  // rings = [outerRing, hole1, ...] dove outerRing = [[lon,lat], ...]
+  const [lon, lat] = rings[0][0];
+  const [lonMin, lonMax, latMin, latMax] = EUROPE_EXTENT;
+  return lon >= lonMin && lon <= lonMax && lat >= latMin && lat <= latMax;
+}
+
+/**
+ * Taglia le parti d'oltremare di una feature GeoJSON.
+ * Per i MultiPolygon tiene solo i poligoni il cui anello esterno è in Europa.
+ * Per i Polygon restituisce la feature solo se l'anello esterno è in Europa.
+ * Restituisce null se nessun poligono sopravvive al filtro.
+ */
+function clipToEurope(feature) {
+  const g = feature.geometry;
+  if (!g) return null;
+
+  if (g.type === 'Polygon') {
+    return ringInEurope(g.coordinates) ? feature : null;
+  }
+  if (g.type === 'MultiPolygon') {
+    const kept = g.coordinates.filter(ringInEurope);
+    if (kept.length === 0) return null;
+    if (kept.length === g.coordinates.length) return feature; // nessuna modifica
+    // Crea una nuova feature con MultiPolygon filtrato
+    return { ...feature, geometry: { type: 'MultiPolygon', coordinates: kept } };
+  }
+  return feature; // punti o linee: tieni così com'è
+}
+
 // ── Pipeline ────────────────────────────────────────────────────────────────
 
 function main() {
@@ -201,10 +241,28 @@ function main() {
   }
   console.log(`  Trovate ${euroFeatures.length} nazioni europee`);
 
+  // 3b. Taglia territori d'oltremare (es. Guyana francese)
+  let trimmedPolygons = 0;
+  const clipped = euroFeatures
+    .map((f) => {
+      const original = f.geometry?.type === 'MultiPolygon' ? f.geometry.coordinates.length : 1;
+      const result = clipToEurope(f);
+      if (result && result.geometry?.type === 'MultiPolygon') {
+        trimmedPolygons += original - result.geometry.coordinates.length;
+      } else if (!result) {
+        trimmedPolygons += original;
+      }
+      return result;
+    })
+    .filter((f) => f !== null);
+  if (trimmedPolygons > 0) {
+    console.log(`  Rimossi ${trimmedPolygons} poligoni d'oltremare`);
+  }
+
   // 4. FeatureCollection per il fit (Europa core)
   const fitFC = {
     type: 'FeatureCollection',
-    features: euroFeatures.filter((f) => !FIT_EXCLUDE.has(f.properties.alpha3)),
+    features: clipped.filter((f) => !FIT_EXCLUDE.has(f.properties.alpha3)),
   };
 
   // 5. Proiezione Equal Earth centrata sull'Europa
@@ -224,7 +282,7 @@ function main() {
     maxX = -Infinity,
     maxY = -Infinity;
 
-  for (const f of euroFeatures) {
+  for (const f of clipped) {
     const a3 = f.properties.alpha3;
     const pathD = pathGen(f);
     if (!pathD) {
