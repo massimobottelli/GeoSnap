@@ -1,7 +1,7 @@
 
 # GeoSnap — Piano di Implementazione MVP1
 
-**Versione:** 1.2 (Fase 0 completata)
+**Versione:** 1.3 (Fase 2 completata)
 
 **Input:** Requisiti Funzionali v1.0 + Requisiti Tecnici v1.0
 
@@ -244,13 +244,13 @@ Natural Earth include i territori d'oltremare nelle geometrie dei paesi sovrani 
 
 ---
 
-## Fase 2 — Core della logica pura (`src/game/`)
+## Fase 2 — Core della logica pura (`src/game/`) ✅
 
 > **Obiettivo:** Moduli di gioco testabili con Vitest senza dipendenze dal DOM.
-> 
-> 
+>
+> **Stato:** **completata** il 2026-10-10 — vedi *Esito Fase 2* in coda a questa sezione.
 
-### Task 2.1 — Tipi di dominio (`types.ts`) e parametri (`tuning.ts`)
+### Task 2.1 — Tipi di dominio (`types.ts`) e parametri (`tuning.ts`) ✅
 
 * Definire `types.ts`: `NationId`, `Nation`, `NationState`, `GameState`.
 
@@ -277,7 +277,7 @@ Natural Earth include i territori d'oltremare nelle geometrie dei paesi sovrani 
 
 
 
-### Task 2.2 — Shuffle (`shuffle.ts`) e Punteggio (`scoring.ts`)
+### Task 2.2 — Shuffle (`shuffle.ts`) e Punteggio (`scoring.ts`) ✅
 
 * Implementare `shuffleNationIds(ids, seed?)` con algoritmo Fisher-Yates (supporto seed per i test).
 
@@ -289,7 +289,7 @@ Natural Earth include i territori d'oltremare nelle geometrie dei paesi sovrani 
 
 
 
-### Task 2.3 — Gestione dello stato di gioco (`gameState.ts`)
+### Task 2.3 — Gestione dello stato di gioco (`gameState.ts`) ✅
 
 * Reducer puro per le azioni di gioco:
 
@@ -311,6 +311,41 @@ Natural Earth include i territori d'oltremare nelle geometrie dei paesi sovrani 
 * Garantire che la partita sia sempre completabile (nessun game over).
 
 
+### ✅ Esito Fase 2
+
+**Data:** 2026-10-10 · **Ambiente verificato:** macOS 27.0.1 (arm64), Node v26.7.0, npm 11.19.0.
+
+**Moduli prodotti:**
+
+| Modulo | Contenuto | Riferimento |
+| --- | --- | --- |
+| `src/game/types.ts` | Tipi di dominio: `NationId`, `Nation`, `NationState`, `GameState`, `PlacementResult` | §8.1 |
+| `src/tuning.ts` | Parametri centralizzati: `snap`, `scoring`, `tray`, `map`, `anim` (tutti frozen) | §10 |
+| `src/game/shuffle.ts` | `shuffleNationIds(ids, rng?)` — Fisher-Yates con RNG iniettabile | §8.4, RF-04 |
+| `src/game/scoring.ts` | `scoreForAttempt()`, `maxScore()`, `precision()` — scala punti da tuning | §8.2, RF-23, RF-31 |
+| `src/game/gameState.ts` | `startGame()`, `registerPlace()`, `registerFail()` — reducer puro immutabile | §8.3, RF-03, RF-24 |
+
+**Test prodotti:**
+
+| Test file | Test | Verifica |
+| --- | --- | --- |
+| `tests/unit/tuning.test.ts` | 22 | Immutabilità, valori snap/scoring/tray/map/anim, coerenza |
+| `tests/unit/shuffle.test.ts` | 9 | Nessuna perdita, determinismo seeded, non-mutazione, casi limite |
+| `tests/unit/scoring.test.ts` | 11 | Scala 100/50/25/0 (RF-23), maxScore, precisione |
+| `tests/unit/gameState.test.ts` | 25 | startGame, registerPlace, registerFail, completabilità (RF-24), flusso completo |
+
+**Verifica — criteri di uscita:**
+
+- ✅ `npm run typecheck` — nessun errore
+- ✅ `npm run lint` (`--max-warnings=0`) — nessun errore
+- ✅ `npm run test` — 99/99 test verdi (6 file: tuning 22, shuffle 9, scoring 11, gameState 25, nations 16, europe-shapes 14)
+- ✅ `npm run build` — build verde (82.12 KB gzip)
+
+**Note e decisioni:**
+
+- La funzione `precision()` conta `attempts === 1` come primo tentativo, perché `registerPlace` incrementa il contatore (il tentativo riuscito conta come attempt). Questo è coerente con il modello in cui `attempts` rappresenta il numero totale di rilasci (falliti + riuscito).
+- `finishGame` è integrato direttamente in `registerPlace` (imposta `finishedAt` quando `remaining === 0`): non è stata creata una funzione separata per mantenere la coerenza con il modello reducer puro.
+- Nessuna dipendenza da React o DOM nei moduli `src/game/**` — tutti testabili in ambiente `node`.
 
 ---
 
