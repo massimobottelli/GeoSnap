@@ -1,5 +1,9 @@
 /**
- * GeoSnap — GameScreen: assembla mappa, vassoio, drag e HUD (Fase 4).
+ * GeoSnap — GameScreen: integrazione completa del flusso di gioco (Fase 5).
+ *
+ * Assembla mappa, vassoio, drag e HUD. Gestisce la transizione
+ * dallo stato di gioco attivo alla schermata di riepilogo (SummaryScreen)
+ * al completamento dell'ultima nazione.
  *
  * Riferimento: §9.4, §7.1 dei Requisiti Tecnici MVP1.
  */

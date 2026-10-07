@@ -1,5 +1,5 @@
 /**
- * GeoSnap — Heads-Up Display (Fase 4, Task 4.5).
+ * GeoSnap — Heads-Up Display (Fase 5, Task 4.5/5.1).
  *
  * Mostra il contatore di avanzamento ("12/36 posizionate") e il
  * punteggio corrente in tempo reale durante la partita.

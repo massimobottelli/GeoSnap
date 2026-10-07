@@ -1,7 +1,7 @@
 
 # GeoSnap — Piano di Implementazione MVP1
 
-**Versione:** 1.5 (Fase 4 completata)
+**Versione:** 1.6 (Fase 5 completata)
 
 **Input:** Requisiti Funzionali v1.0 + Requisiti Tecnici v1.0
 
@@ -562,11 +562,13 @@ Natural Earth include i territori d'oltremare nelle geometrie dei paesi sovrani 
 
 ---
 
-## Fase 5 — Integrazione e PWA
+## Fase 5 — Integrazione e PWA ✅
 
 > **Obiettivo:** Assemblaggio dell'applicazione, offline PWA e ottimizzazione del bundle.
+>
+> **Stato:** **completata** il 2026-10-10 — vedi *Esito Fase 5* in coda a questa sezione.
 
-### Task 5.1 — Assemblaggio flusso principale (`App.tsx`, `GameScreen.tsx`)
+### Task 5.1 — Assemblaggio flusso principale (`App.tsx`, `GameScreen.tsx`) ✅
 
 * Unificare il flusso di gioco: avvio diretto senza onboarding.
 
@@ -575,12 +577,71 @@ Natural Earth include i territori d'oltremare nelle geometrie dei paesi sovrani 
 
 
 
-### Task 5.2 — Configurazione PWA e meta tag
+### Task 5.2 — Configurazione PWA e meta tag ✅
 
 * Creare `manifest.webmanifest` con nome "GeoSnap", colore di tema verde lime, orientation portrait e modalità standalone.
 
 
 * Impostare il tag `<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">` per prevenire lo zoom indesiderato della pagina web su dispositivi mobili.
+
+
+### ✅ Esito Fase 5
+
+**Data:** 2026-10-10 · **Ambiente verificato:** macOS 27.0.1 (arm64), Node v26.7.0, npm 11.19.0.
+
+**Deliverable prodotti:**
+
+| File | Contenuto | Riferimento |
+| --- | --- | --- |
+| `public/manifest.webmanifest` | Manifest PWA: nome "GeoSnap", `display: standalone`, `orientation: portrait`, colore tema `#8CD600`, icone SVG 192/512 | §12.1, RF-46 |
+| `public/icon-192.svg` | Icona PWA 192×192 (SVG, logo GeoSnap su sfondo chiaro) | §12.1 |
+| `public/icon-512.svg` | Icona PWA 512×512 (SVG, logo GeoSnap su sfondo chiaro, `purpose: any maskable`) | §12.1 |
+| `public/sw.js` | Service worker di cache: strategia cache-first con stale-while-revalidate per asset statici; pre-caching app shell; pulizia cache vecchie all'attivazione | §12.1 |
+| `index.html` | Aggiunti: `<link rel="manifest">`, meta tag Apple (`apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style`, `apple-mobile-web-app-title`, `apple-touch-icon`), `<meta name="description">` | §12.1 |
+| `src/main.tsx` | Registrazione service worker in produzione (`import.meta.env.PROD`), scope = `BASE_URL`, gestione errori | §12.1 |
+| `eslint.config.js` | Aggiunto `'public/**/*.js'` agli ignores (service worker globals `self`/`caches` non definiti in contesto browser ESLint) | — |
+| `src/components/App.tsx` | Commento aggiornato a Fase 5 con descrizione del flusso completo | §9.4 |
+| `src/components/GameScreen.tsx` | Commento aggiornato a Fase 5 con descrizione dell'integrazione | §9.4 |
+| `src/components/SummaryScreen.tsx` | Commento aggiornato a Fase 5 | §9.4 |
+| `src/components/HUD.tsx` | Commento aggiornato a Fase 5 | §9.4 |
+
+**Design del service worker (`sw.js`):**
+- **Pre-caching install:** cache `./`, `./index.html`, `./icon-192.svg`, `./icon-512.svg`, `./favicon.svg`, `./manifest.webmanifest`.
+- **Strategia fetch:** cache-first per richieste GET same-origin, con aggiornamento background (stale-while-revalidate leggero). Primo accesso: fetch di rete → cache. Accessi successivi: cache → aggiorna in background.
+- **Attivazione:** `skipWaiting()` + `clients.claim()` per aggiornamento immediato.
+- **Pulizia:** eliminazione cache con nome diverso da `geosnap-v1` all'attivazione.
+- **URL relativi:** tutti i path nel service worker usano URL relativi (`./`) per compatibilità con il base path `/GeoSnap/` di GitHub Pages.
+
+**Design del manifest (`manifest.webmanifest`):**
+- `start_url` e `scope`: `/GeoSnap/` (coerente con `vite.config.ts` base path in build).
+- `display: standalone`: nessuna barra del browser nell'esperienza PWA.
+- `orientation: portrait`: forza orientamento verticale (RF-12.1).
+- `theme_color: #8CD600`: lime accent per la status bar (RF-46).
+- `background_color: #FDFCF8`: colore di sfondo durante il caricamento.
+- Icone SVG: supportate da tutti i browser moderni; il 512px ha `purpose: "any maskable"` per Android adaptive icons.
+
+**Integrazione flusso principale (Task 5.1):**
+Il flusso di gioco era già completo dalla Fase 4:
+- `App.tsx` → `GameScreen` senza onboarding (RF-01, RF-49).
+- `GameScreen` gestisce `gameFinished` → `SummaryScreen` al termine (RF-31).
+- `SummaryScreen` → "Gioca ancora" → `startGame()` con nuovo shuffle (RF-34).
+- Nessuna modifica funzionale necessaria; aggiornati i commenti di fase.
+
+**Verifica — criteri di uscita:**
+- ✅ `npm run typecheck` — nessun errore
+- ✅ `npm run lint` (`--max-warnings=0`) — nessun errore
+- ✅ `npm run format:check` — tutti i file formattati correttamente
+- ✅ `npm run test` — 122/122 test verdi (8 file)
+- ✅ `npm run build` — build verde (102.11 KB gzip, ben sotto il target 200 KB)
+- ✅ `npm run test:e2e` — 2/2 smoke test verdi (mobile Chromium, emulazione touch)
+- ✅ Bundle `dist/` contiene: `index.html`, `manifest.webmanifest`, `sw.js`, `icon-192.svg`, `icon-512.svg`, `favicon.svg`, assets JS/CSS
+- ✅ `index.html` in `dist/` ha tutti i path corretti con prefisso `/GeoSnap/`
+
+**Note e limiti:**
+- Il service worker è registrato solo in produzione (`import.meta.env.PROD`) per non interferire con HMR durante lo sviluppo.
+- Le icone PWA sono SVG (non PNG): supportate da tutti i browser moderni; per la massima compatibilità con dispositivi più vecchi, si potrebbero aggiungere PNG 192/512 in futuro.
+- Il service worker usa `skipWaiting()` + `clients.claim()` per aggiornamento immediato: l'utente non deve chiudere/riaprire l'app per ricevere aggiornamenti.
+- La strategia stale-while-revalidate garantisce che gli asset cached vengano serviti istantaneamente mentre si aggiornano in background.
 
 
 

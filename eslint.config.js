@@ -21,6 +21,7 @@ export default tseslint.config(
       'playwright-report',
       'test-results',
       'scripts/**/*.sh',
+      'public/**/*.js',
     ],
   },
 

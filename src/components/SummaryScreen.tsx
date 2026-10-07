@@ -1,5 +1,5 @@
 /**
- * GeoSnap — schermata di riepilogo fine partita (Fase 4, Task 4.5).
+ * GeoSnap — schermata di riepilogo fine partita (Fase 5, Task 4.5/5.1).
  *
  * Mostra:
  * - Punteggio totale / punteggio massimo teorico

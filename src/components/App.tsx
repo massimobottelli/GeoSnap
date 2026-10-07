@@ -1,7 +1,9 @@
 /**
- * GeoSnap — App (Fase 4).
+ * GeoSnap — App (Fase 5).
  *
- * Avvia direttamente il gioco senza onboarding (RF-01, RF-49).
+ * Componente radice: avvia direttamente il gioco senza onboarding (RF-01, RF-49).
+ * Il flusso completo (GameScreen → SummaryScreen → Gioca ancora) è gestito
+ * internamente da GameScreen.
  */
 import { GameScreen } from './GameScreen';
 
