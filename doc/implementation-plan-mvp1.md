@@ -1,7 +1,7 @@
 
 # GeoSnap — Piano di Implementazione MVP1
 
-**Versione:** 1.3 (Fase 2 completata)
+**Versione:** 1.4 (Fase 3 completata)
 
 **Input:** Requisiti Funzionali v1.0 + Requisiti Tecnici v1.0
 
@@ -349,13 +349,13 @@ Natural Earth include i territori d'oltremare nelle geometrie dei paesi sovrani 
 
 ---
 
-## Fase 3 — Valutazione dello Snap
+## Fase 3 — Valutazione dello Snap ✅
 
 > **Obiettivo:** Algoritmo di aggancio basato su overlap di area.
-> 
-> 
+>
+> **Stato:** **completata** il 2026-10-07 — vedi *Esito Fase 3* in coda a questa sezione.
 
-### Task 3.1 — `rasterize.ts` e `snap.ts`
+### Task 3.1 — `rasterize.ts` e `snap.ts` ✅
 
 * Implementare `evaluateSnap(pathD, releaseTransform, targetBBox, targetPathD)`:
 
@@ -373,7 +373,50 @@ Natural Earth include i territori d'oltremare nelle geometrie dei paesi sovrani 
 
 * Isolare l'API Canvas in `rasterize.ts` rendendola sostituibile nei test unitari.
 
+### ✅ Esito Fase 3
 
+**Data:** 2026-10-07 · **Ambiente verificato:** macOS 27.0.1 (arm64), Node v26.7.0, npm 11.19.0.
+
+**Dipendenze aggiunte (devDependencies):**
+
+| Pacchetto | Uso |
+| --- | --- |
+| `canvas` (3.2.x) | Canvas 2D API per Node.js — utilizzabile come fallback per test di rasterizzazione |
+
+**Moduli prodotti:**
+
+| Modulo | Contenuto | Riferimento |
+| --- | --- | --- |
+| `src/game/evaluation/rasterize.ts` | Tipi `BBox`, `CanvasTransform`, `CanvasFactory`, `CanvasContext2DLike`, `CanvasElementLike`; costante `IDENTITY_TRANSFORM`; funzione `rasterizePath()` — rasterizzazione SVG path su canvas offscreen con CanvasFactory iniettabile | §6, RF-19 |
+| `src/game/evaluation/snap.ts` | Funzione `evaluateSnap()` — valutazione snap tramite overlap di area; confronto pixel opachi target vs. sagoma; soglia da `tuning.ts` | §6, RF-19, RF-20 |
+
+**Design dell'API Canvas:**
+
+- Interfacce minime (`CanvasContext2DLike`, `CanvasElementLike`) che astraggono la Canvas 2D API.
+- `CanvasFactory` type per dependency injection: in produzione usa `document.createElement('canvas')` o `OffscreenCanvas`; in test usa un mock che restituisce pixel preconfigurati.
+- `rasterizePath()` compone il viewport transform (bbox → canvas) con il transform opzionale della sagoma rilasciata.
+- Supporto `Path2D` in ambiente browser con fallback graceful in test (fill no-op).
+- `evaluateSnap()` è pura: non ha side effects, non dipende dal DOM, completamente testabile.
+
+**Test prodotti:**
+
+| Test file | Test | Verifica |
+| --- | --- | --- |
+| `tests/unit/snap.test.ts` | 14 | Aggancio riuscito (overlap ≥ soglia), aggancio fallito (< soglia), sagome totalmente fuori (RF-20), edge cases (target vuoto, entrambi vuoti, sagoma più grande), coerenza tuning, CanvasFactory iniettato |
+
+**Verifica — criteri di uscita:**
+
+- ✅ `npm run typecheck` — nessun errore
+- ✅ `npm run lint` (`--max-warnings=0`) — nessun errore
+- ✅ `npm run test` — 113/113 test verdi (7 file: tuning 22, shuffle 9, scoring 11, gameState 25, nations 16, europe-shapes 14, snap 14)
+- ✅ `npm run build` — build verde (82.12 KB gzip)
+
+**Note e decisioni:**
+
+- La `CanvasFactory` è required (non optional) in `evaluateSnap()` e `rasterizePath()`: in produzione il componente React la fornirà; in test il mock la inietta. Questo mantiene la logica pura e senza dipendenze globali implicite.
+- `IDENTITY_TRANSFORM` è esportata come costante riutilizzabile per il caso "sagoma nella posizione esatta".
+- Il viewport transform in `rasterizePath` scala uniformemente (`Math.max(bw, bh)`) per preservare le proporzioni, coerente con la rasterizzazione normalizzata descritta in §6.
+- Il `canvas` package è stato aggiunto come devDependency per potenziali test futuri con rendering reale; per i test attuali della logica snap si usa un canvas mock iniettato via `CanvasFactory`.
 
 ---
 
