@@ -24,24 +24,42 @@ interface DragLayerProps {
   zoomTransformRef: React.RefObject<string>;
   /** Ref esposto sull'elemento path del pezzo trascinato (per aggiornamenti imperativi). */
   pieceRef: React.RefObject<SVGPathElement | null>;
+  /** Ref al transform corrente della sagoma (posizione di presa al pickup). */
+  pieceTransformRef: React.RefObject<string>;
 }
 
-export function DragLayer({ activeNation, zoomTransformRef, pieceRef }: DragLayerProps) {
-  // Sincronizza il transform d3-zoom sul <g> wrapper
-  // (il transform viene aggiornato imperativamente da d3-zoom)
+export function DragLayer({
+  activeNation,
+  zoomTransformRef,
+  pieceRef,
+  pieceTransformRef,
+}: DragLayerProps) {
+  // Al pickup: sincronizza il transform d3-zoom sul <g> wrapper e posiziona la
+  // sagoma nel punto di presa (la sagoma "cresce" alla scala della mappa — §5.3).
   useEffect(() => {
-    const group = pieceRef.current?.parentElement;
+    const piece = pieceRef.current;
+    const group = piece?.parentElement;
     if (group instanceof SVGGElement) {
       group.setAttribute('transform', zoomTransformRef.current);
     }
-  }, [activeNation, zoomTransformRef, pieceRef]);
+    if (piece !== null && pieceTransformRef.current !== '') {
+      piece.setAttribute('transform', pieceTransformRef.current);
+    }
+  }, [activeNation, zoomTransformRef, pieceRef, pieceTransformRef]);
 
   return (
-    <svg viewBox={viewBox.join(' ')} className="pointer-events-none absolute inset-0 h-full w-full">
+    <svg
+      viewBox={viewBox.join(' ')}
+      className="pointer-events-none absolute inset-0 h-full w-full"
+      // overflow visibile: la sagoma è trascinata dal vassoio verso la mappa,
+      // quindi deve essere visibile anche fuori dal viewport della mappa (§5.3).
+      style={{ overflow: 'visible' }}
+    >
       <g>
         {activeNation !== null && (
           <path
             ref={pieceRef}
+            data-testid="drag-piece"
             d={activeNation.pathD}
             fill="var(--color-accent)"
             opacity={0.85}

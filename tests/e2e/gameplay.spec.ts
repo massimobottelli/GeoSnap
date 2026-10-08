@@ -52,4 +52,53 @@ test.describe('GeoSnap — gameplay base', () => {
 
     expect(jsErrors).toHaveLength(0);
   });
+
+  test('la sagoma si stacca dal vassoio e segue il dito (RF-15)', async ({ page }) => {
+    await page.goto('/');
+    const firstItem = page.locator('[data-nation-id]').first();
+    await expect(firstItem).toBeVisible();
+    const nationId = await firstItem.getAttribute('data-nation-id');
+    const trayBox = await firstItem.boundingBox();
+    expect(trayBox).not.toBeNull();
+    if (trayBox === null || nationId === null) return;
+
+    const startX = trayBox.x + trayBox.width / 2;
+    const startY = trayBox.y + trayBox.height / 2;
+    // Punto di rilascio dentro la mappa (sopra il vassoio)
+    const endY = Math.max(startY - 200, 120);
+
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.waitForTimeout(50);
+
+    // 1. La sagoma nel vassoio si stacca (non resta visibile al suo posto)
+    await expect(page.locator(`[data-nation-id="${nationId}"]`)).toHaveAttribute(
+      'data-dragging',
+      'true',
+    );
+
+    // 2. La sagoma nel DragLayer segue il dito verso la mappa
+    const dragPiece = page.locator('[data-testid="drag-piece"]');
+    await expect(dragPiece).toBeVisible();
+    await page.mouse.move(startX, endY, { steps: 6 });
+    await page.waitForTimeout(80);
+
+    const pieceBox = await dragPiece.boundingBox();
+    expect(pieceBox).not.toBeNull();
+    if (pieceBox === null) return;
+    const pieceCenterX = pieceBox.x + pieceBox.width / 2;
+    const pieceCenterY = pieceBox.y + pieceBox.height / 2;
+    // Tolleranza: il centroide può non coincidere col centro del bbox della sagoma
+    const tolerance = Math.max(pieceBox.width, pieceBox.height) * 0.5 + 10;
+    expect(Math.abs(pieceCenterX - startX)).toBeLessThan(tolerance);
+    expect(Math.abs(pieceCenterY - endY)).toBeLessThan(tolerance);
+
+    // 3. Al rilascio la sagoma torna disponibile nel vassoio
+    await page.mouse.up();
+    await page.waitForTimeout(300);
+    await expect(page.locator(`[data-nation-id="${nationId}"]`)).toHaveAttribute(
+      'data-dragging',
+      'false',
+    );
+  });
 });

@@ -124,17 +124,18 @@ export function MapView({
         {
           // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           DEBUG_SHOW_CENTROIDS &&
-          playable.map(([id, c]) => {
-            const cx = c.centroid[0] ?? 0;
-            const cy = c.centroid[1] ?? 0;
-            const s = 3; // semicross size in viewBox units
-            return (
-              <g key={`dbg-${id}`} style={{ pointerEvents: 'none' }}>
-                <line x1={cx - s} y1={cy} x2={cx + s} y2={cy} stroke="red" strokeWidth={0.8} />
-                <line x1={cx} y1={cy - s} x2={cx} y2={cy + s} stroke="red" strokeWidth={0.8} />
-              </g>
-            );
-          })}
+            playable.map(([id, c]) => {
+              const cx = c.centroid[0] ?? 0;
+              const cy = c.centroid[1] ?? 0;
+              const s = 3; // semicross size in viewBox units
+              return (
+                <g key={`dbg-${id}`} style={{ pointerEvents: 'none' }}>
+                  <line x1={cx - s} y1={cy} x2={cx + s} y2={cy} stroke="red" strokeWidth={0.8} />
+                  <line x1={cx} y1={cy - s} x2={cx} y2={cy + s} stroke="red" strokeWidth={0.8} />
+                </g>
+              );
+            })
+        }
       </g>
     </svg>
   );

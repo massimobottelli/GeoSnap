@@ -10,7 +10,7 @@
  * Riferimento: §5.2 dei Requisiti Tecnici MVP1, RF-09, RF-10, RF-11, RF-13.
  */
 
-import { useMemo } from 'react';
+import { useMemo, useRef, useCallback } from 'react';
 import type { Nation, NationId } from '../game/types';
 import { TrayItem } from './TrayItem';
 import { tuning } from '../tuning';
@@ -26,6 +26,8 @@ interface TrayProps {
   onPiecePointerDown: (nationId: string, e: React.PointerEvent) => void;
   /** ID delle nazioni con animazione di ritorno in corso. */
   failedNationIds: ReadonlySet<string>;
+  /** ID della nazione attualmente trascinata (la sagoma si stacca dal vassoio — RF-15). */
+  draggingNationId: string | null;
   /** Callback alla fine dell'animazione di ritorno. */
   onReturnAnimationEnd: (nationId: string) => void;
 }
@@ -42,8 +44,28 @@ export function Tray({
   trayOrder,
   onPiecePointerDown,
   failedNationIds,
+  draggingNationId,
   onReturnAnimationEnd,
 }: TrayProps) {
+  /** Container scrollabile del vassoio. */
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  /** Scroll congelato al pickup, così il rilascio nel vassoio resta sulla sagoma. */
+  const scrollLeftAtPickupRef = useRef(0);
+
+  const handlePiecePointerDown = useCallback(
+    (nationId: string, e: React.PointerEvent) => {
+      const container = containerRef.current;
+      if (container !== null) {
+        scrollLeftAtPickupRef.current = container.scrollLeft;
+      }
+      onPiecePointerDown(nationId, e);
+      if (container !== null) {
+        container.scrollLeft = scrollLeftAtPickupRef.current;
+      }
+    },
+    [onPiecePointerDown],
+  );
+
   // Massimo sqrt(area) per la normalizzazione della scala
   const maxSqrtArea = useMemo(() => {
     let max = 0;
@@ -59,6 +81,7 @@ export function Tray({
 
   return (
     <div
+      ref={containerRef}
       className="flex shrink-0 items-end overflow-x-auto bg-tray"
       style={{
         touchAction: 'pan-x',
@@ -76,8 +99,9 @@ export function Tray({
               key={id}
               nation={nation}
               scale={scale}
-              onPointerDown={onPiecePointerDown}
+              onPointerDown={handlePiecePointerDown}
               isAnimatingReturn={failedNationIds.has(id)}
+              isDragging={draggingNationId === id}
               onAnimationEnd={() => {
                 onReturnAnimationEnd(id);
               }}

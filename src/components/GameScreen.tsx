@@ -29,18 +29,30 @@ const browserCanvasFactory: CanvasFactory = (w, h) => {
   return canvas;
 };
 
+/**
+ * Converte coordinate schermo → coordinate viewBox della mappa (§5.3).
+ *
+ * Il riferimento è il `<g>` radice della mappa (non l'`<svg>`): il suo CTM
+ * include il transform d3-zoom, quindi il risultato è espresso nelle stesse
+ * coordinate in cui vivono i `pathD` delle nazioni, a qualunque livello di zoom.
+ */
 function screenToSvgCoords(
-  svg: SVGSVGElement,
+  target: SVGGraphicsElement,
   screenX: number,
   screenY: number,
 ): [number, number] | null {
-  const ctm = svg.getScreenCTM();
+  const ctm = target.getScreenCTM();
   if (ctm === null) return null;
-  const pt = svg.createSVGPoint();
-  pt.x = screenX;
-  pt.y = screenY;
-  const svgPt = pt.matrixTransform(ctm.inverse());
+  const svgPt = new DOMPoint(screenX, screenY).matrixTransform(ctm.inverse());
   return [svgPt.x, svgPt.y];
+}
+
+/**
+ * Trasformazione (traslazione) che porta il centroide della sagoma sul punto
+ * indicato, in coordinate viewBox della mappa (RF-15: la sagoma segue il dito).
+ */
+function pieceTransformAt(centroid: readonly [number, number], x: number, y: number): string {
+  return `translate(${String(x - centroid[0])}, ${String(y - centroid[1])})`;
 }
 
 function loadNations(): Record<string, Nation> {
@@ -78,6 +90,8 @@ export function GameScreen() {
 
   const pieceRef = useRef<SVGPathElement | null>(null);
   const isDraggingRef = useRef(false);
+  /** Transform iniziale della sagoma al pickup (applicato da DragLayer al mount). */
+  const pieceTransformRef = useRef<string>('');
 
   // Dev-only test hook for E2E: allows force-completing the game via
   // window.__geosnap_test.forceComplete(). No-op in production builds.
@@ -121,45 +135,45 @@ export function GameScreen() {
       if (!(target instanceof SVGElement)) return;
       const nation = nations[nationId];
       if (nation === undefined) return;
+      const mapRoot = mapRootRef.current ?? svgRef.current;
+      if (mapRoot === null) return;
+      // Posizione iniziale: la sagoma "cresce" alla scala della mappa e il suo
+      // centroide finisce subito sotto il dito, nel punto di presa (RF-15).
+      const coords = screenToSvgCoords(mapRoot, e.clientX, e.clientY);
+      if (coords === null) return;
       target.setPointerCapture(e.pointerId);
       isDraggingRef.current = true;
+      pieceTransformRef.current = pieceTransformAt(nation.centroid, coords[0], coords[1]);
       setActiveNationId(nationId);
-      requestAnimationFrame(() => {
-        if (pieceRef.current !== null) {
-          pieceRef.current.setAttribute(
-            'transform',
-            `translate(${String(nation.centroid[0])}, ${String(nation.centroid[1])})`,
-          );
-        }
-      });
     },
-    [nations],
+    [mapRootRef, nations, svgRef],
   );
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
       if (!isDraggingRef.current || activeNationId === null) return;
-      const svg = svgRef.current;
-      if (svg === null) return;
-      const coords = screenToSvgCoords(svg, e.clientX, e.clientY);
+      const nation = nations[activeNationId];
+      if (nation === undefined) return;
+      const mapRoot = mapRootRef.current ?? svgRef.current;
+      if (mapRoot === null) return;
+      const coords = screenToSvgCoords(mapRoot, e.clientX, e.clientY);
       if (coords === null) return;
-      if (pieceRef.current !== null) {
-        pieceRef.current.setAttribute(
-          'transform',
-          `translate(${String(coords[0])}, ${String(coords[1])})`,
-        );
-      }
+      const transform = pieceTransformAt(nation.centroid, coords[0], coords[1]);
+      pieceTransformRef.current = transform;
+      // Aggiornamento imperativo: zero setState nel loop di drag (§3.2)
+      pieceRef.current?.setAttribute('transform', transform);
     },
-    [activeNationId, svgRef],
+    [activeNationId, mapRootRef, nations, svgRef],
   );
   const handlePointerUp = useCallback(
     (e: React.PointerEvent) => {
       if (!isDraggingRef.current || activeNationId === null) return;
-      const svg = svgRef.current;
-      if (svg === null) return;
-      const coords = screenToSvgCoords(svg, e.clientX, e.clientY);
+      const mapRoot = mapRootRef.current ?? svgRef.current;
+      if (mapRoot === null) return;
+      const coords = screenToSvgCoords(mapRoot, e.clientX, e.clientY);
       const nation = nations[activeNationId];
       if (coords !== null && nation !== undefined) {
+        // Stessa traslazione applicata alla sagoma durante il drag (RF-20)
         const dx = coords[0] - nation.centroid[0];
         const dy = coords[1] - nation.centroid[1];
         const releaseTransform: CanvasTransform = { a: 1, b: 0, c: 0, d: 1, e: dx, f: dy };
@@ -184,7 +198,7 @@ export function GameScreen() {
       isDraggingRef.current = false;
       setActiveNationId(null);
     },
-    [activeNationId, nations, svgRef],
+    [activeNationId, mapRootRef, nations, svgRef],
   );
 
   const handlePointerCancel = useCallback(() => {
@@ -224,7 +238,7 @@ export function GameScreen() {
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
     >
-      <div className="relative min-h-0 flex-1">
+      <div className="relative z-10 min-h-0 flex-1">
         <MapView
           svgCallbackRef={svgCallbackRef}
           mapRootRef={mapRootRef}
@@ -238,6 +252,7 @@ export function GameScreen() {
           activeNation={activeNation}
           zoomTransformRef={zoomTransformRef}
           pieceRef={pieceRef}
+          pieceTransformRef={pieceTransformRef}
         />
       </div>
       <Tray
@@ -248,6 +263,7 @@ export function GameScreen() {
         })}
         onPiecePointerDown={handlePiecePointerDown}
         failedNationIds={failedNationIds}
+        draggingNationId={activeNationId}
         onReturnAnimationEnd={handleReturnAnimationEnd}
       />
     </div>

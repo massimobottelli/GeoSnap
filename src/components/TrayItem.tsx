@@ -15,6 +15,8 @@ interface TrayItemProps {
   scale: number;
   onPointerDown: (nationId: string, e: React.PointerEvent) => void;
   isAnimatingReturn: boolean;
+  /** La sagoma è stata staccata dal vassoio ed è nel DragLayer (RF-15). */
+  isDragging: boolean;
   onAnimationEnd: () => void;
 }
 
@@ -23,6 +25,7 @@ export function TrayItem({
   scale,
   onPointerDown,
   isAnimatingReturn,
+  isDragging,
   onAnimationEnd,
 }: TrayItemProps) {
   const { id, name, pathD, centroid, bbox } = nation;
@@ -40,11 +43,15 @@ export function TrayItem({
     <div className="flex shrink-0 flex-col items-center gap-1 px-2">
       <svg
         data-nation-id={id}
+        data-dragging={isDragging}
         width={svgSize}
         height={svgSize}
         viewBox={viewBoxStr}
         className="touch-none select-none"
         style={{
+          // La sagoma si stacca dal vassoio: resta invisibile (ma occupa lo
+          // stesso spazio) finché è nel DragLayer (RF-15).
+          visibility: isDragging ? 'hidden' : undefined,
           transform: isAnimatingReturn ? 'translate(0, 0)' : undefined,
           transition: isAnimatingReturn
             ? 'transform 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94)'
