@@ -13,6 +13,7 @@ const shapesPath = resolve(__dirname, '../../src/data/europe-shapes.json');
 const shapes = JSON.parse(readFileSync(shapesPath, 'utf-8')) as {
   projection: string;
   viewBox: number[];
+  europeOutline: string;
   countries: Record<
     string,
     {
@@ -33,9 +34,12 @@ const nonPlayableEntries = countryEntries.filter(([, c]) => !c.playable);
 describe('europe-shapes.json — dati geografici generati (Fase 1, Task 1.2)', () => {
   // ── Struttura generale ─────────────────────────────────────────────────
 
-  it('ha projection, viewBox e countries', () => {
+  it('ha projection, viewBox, europeOutline e countries', () => {
     expect(shapes.projection).toBe('EqualEarth');
     expect(shapes.viewBox).toHaveLength(4);
+    expect(shapes.europeOutline).toBeDefined();
+    expect(typeof shapes.europeOutline).toBe('string');
+    expect(shapes.europeOutline.length).toBeGreaterThan(100);
     expect(shapes.countries).toBeDefined();
     expect(typeof shapes.countries).toBe('object');
   });
@@ -83,6 +87,14 @@ describe('europe-shapes.json — dati geografici generati (Fase 1, Task 1.2)', (
       expect(c.pathD).toMatch(/^M/);
       expect(c.pathD).toContain('Z');
     }
+  });
+
+  it('europeOutline è un path SVG valido (MultiPolygon, inizia con M, contiene Z)', () => {
+    expect(shapes.europeOutline).toMatch(/^M/);
+    expect(shapes.europeOutline).toContain('Z');
+    // MultiPolygon: deve contenere almeno 2 subpath (M...Z...M...Z)
+    const subpaths = shapes.europeOutline.split('Z').length - 1;
+    expect(subpaths).toBeGreaterThanOrEqual(2);
   });
 
   it('bbox ha larghezza e altezza positive', () => {

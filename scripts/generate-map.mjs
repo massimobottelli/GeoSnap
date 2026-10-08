@@ -14,7 +14,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { feature } from 'topojson-client';
+import { feature, merge } from 'topojson-client';
 import { geoEqualEarth, geoPath } from 'd3-geo';
 
 // ── Configurazione ──────────────────────────────────────────────────────────
@@ -311,7 +311,20 @@ function main() {
     };
   }
 
-  // 7. viewBox
+  // 7. Silhouette: merge all European countries into a single outline (no internal borders)
+  const euroTopoGeometries = topo.objects.countries.geometries.filter((g) => {
+    const a3 = NUM_TO_A3.get(String(g.id));
+    if (a3) return !FIT_EXCLUDE.has(a3); // exclude RUS, TUR, GRL from outline
+    if (g.id === undefined && g.properties?.name === 'Kosovo') return true;
+    return false;
+  });
+  const mergedOutline = merge(topo, euroTopoGeometries);
+  const europeOutline = pathGen(mergedOutline);
+  console.log(
+    `  Outline: ${europeOutline ? Math.round((europeOutline.length / 1024) * 10) / 10 : 0} KB`,
+  );
+
+  // 8. viewBox
   const viewBox = [
     Math.round(minX - PAD),
     Math.round(minY - PAD),
@@ -319,8 +332,8 @@ function main() {
     Math.round(maxY - minY + 2 * PAD),
   ];
 
-  // 8. Output
-  const output = { projection: 'EqualEarth', viewBox, countries };
+  // 9. Output
+  const output = { projection: 'EqualEarth', viewBox, europeOutline, countries };
   const json = JSON.stringify(output, null, 2);
   writeFileSync(OUTPUT, json, 'utf-8');
 

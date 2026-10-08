@@ -14,7 +14,7 @@ import { useEffect } from 'react';
 import shapes from '../data/europe-shapes.json';
 import { tuning } from '../tuning';
 
-const { viewBox, countries } = shapes;
+const { viewBox, countries, europeOutline } = shapes;
 const entries = Object.entries(countries);
 const nonPlayable = entries.filter(([, c]) => !c.playable);
 const playable = entries.filter(([, c]) => c.playable);
@@ -62,6 +62,17 @@ export function MapView({
       style={{ background: 'var(--color-map-bg)' }}
     >
       <g ref={mapRootRef}>
+        {/* Strato 0: silhouette Europa senza confini interni (solo bordo) */}
+        {europeOutline && (
+          <path
+            d={europeOutline}
+            fill="none"
+            stroke="var(--color-outline)"
+            strokeWidth={1.5}
+            style={{ pointerEvents: 'none' }}
+          />
+        )}
+
         {/* Strato 1: territori non giocabili (grigio, non interattivi — RF-06/07) */}
         <g className="non-interactive" style={{ pointerEvents: 'none' }}>
           {nonPlayable.map(([id, c]) => (

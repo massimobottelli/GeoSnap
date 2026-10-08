@@ -11,6 +11,7 @@
   --color-tray: #f4f7ee;
   --color-map-bg: #fdfcf8;
   --color-disabled-geo: #c8ccc4; /* microstati/territori non interattivi (RF-06/07) */
+  --color-outline: #b8c4ac; /* bordo silhouette Europa */
 }
 
 html,
