@@ -1,0 +1,81 @@
+# GeoSnap — Build e deploy su GitHub Pages (Fase 7, Task 7.1).
+#
+# Pipeline: qualità (typecheck, lint, formato, test unitari) → build statica
+# (`vite build` → `dist/`, base `/GeoSnap/`) → verifica bundle gzip < 200 KB →
+# pubblicazione dell'artifact su GitHub Pages.
+#
+# Prerequisito (una tantum): repository → Settings → Pages →
+# "Build and deployment" → Source: **GitHub Actions**.
+#
+# Riferimento: §12.2 dei Requisiti Tecnici MVP1.
+
+name: Build e deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Permessi minimi: lettura del repository, scrittura su Pages, OIDC per il deploy.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Una sola pubblicazione alla volta; un deploy in corso non viene annullato.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build e verifica bundle
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Node 22 LTS: soddisfa Vite 8 (^20.19.0 || >=22.12.0) e Vitest 5 (>=22.12.0).
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Installa dipendenze
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Verifica formato (Prettier)
+        run: npm run format:check
+
+      - name: Test unitari
+        run: npm run test
+
+      - name: Build statica (vite build → dist/)
+        run: npm run build
+
+      - name: Verifica bundle gzip < 200 KB
+        run: npm run check:bundle
+
+      - name: Carica artifact Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    name: Deploy su GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Pubblica su GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

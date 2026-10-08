@@ -1,7 +1,7 @@
 
 # GeoSnap — Piano di Implementazione MVP1
 
-**Versione:** 1.7 (Fase 6 completata)
+**Versione:** 1.8 (Fase 7 completata — MVP1 completo)
 
 **Input:** Requisiti Funzionali v1.0 + Requisiti Tecnici v1.0
 
@@ -716,13 +716,13 @@ Il flusso di gioco era già completo dalla Fase 4:
 
 ---
 
-## Fase 7 — Build e Deploy
+## Fase 7 — Build e Deploy ✅
 
 > **Obiettivo:** Pubblicazione su GitHub Pages.
-> 
-> 
+>
+> **Stato:** **completata** il 2026-10-08 — vedi *Esito Fase 7* in coda a questa sezione.
 
-### Task 7.1 — Build e GitHub Actions
+### Task 7.1 — Build e GitHub Actions ✅
 
 * Configurare il workflow `.github/workflows/deploy.yml` per eseguire `npm run build` e distribuire la cartella staticamente generata (`dist/`) su GitHub Pages.
 
@@ -730,24 +730,78 @@ Il flusso di gioco era già completo dalla Fase 4:
 * Verificare che la dimensione totale del bundle compresso gzippato sia inferiore a 200 KB.
 
 
+### ✅ Esito Fase 7
+
+**Data:** 2026-10-08 · **Ambiente verificato:** macOS (arm64), Node v26.7.0, npm 11.19.0.
+
+**Deliverable prodotti o modificati:**
+
+| File | Contenuto | Riferimento |
+| --- | --- | --- |
+| `.github/workflows/deploy.yml` | Workflow GitHub Actions "Build e deploy": trigger `push` su `main` + `workflow_dispatch`; job `build` (checkout → Node 22 → `npm ci` → `typecheck` → `lint` → `format:check` → `test` → `build` → `check:bundle` → `actions/upload-pages-artifact@v3` con `path: dist`) e job `deploy` (`needs: build`, environment `github-pages`, `actions/deploy-pages@v4`) | §12.2 |
+| `scripts/check-bundle-size.mjs` | Verifica automatica della dimensione del bundle: somma il gzip (livello default 6) di tutti i file in `dist/`, stampa il report per file, esce con codice 1 se il totale supera la soglia (default 200 KB, override `--limit-kb`), codice 2 se `dist/` manca/è vuota o l'argomento non è valido. Zero dipendenze (`node:fs`, `node:path`, `node:zlib`) | §3.4, Task 7.1 |
+| `package.json` | Nuovo script `check:bundle` → `node scripts/check-bundle-size.mjs` | Task 7.1 |
+| `tests/unit/deploy-config.test.ts` | 13 test anti-regressione sulla coerenza del deploy: trigger e permessi del workflow, ordine build → check bundle → upload, azioni ufficiali Pages con `path: dist`, `needs: build`, base path Vite `/GeoSnap/` ↔ `start_url`/`scope` del manifest, `display: standalone`, soglia 200 KB nello script, script `check:bundle` in `package.json` | §12.1, §12.2 |
+| `README.md` | Riga `npm run check:bundle` nella tabella script + sezione "Deploy (GitHub Pages)" con i passi della pipeline e il prerequisito Settings → Pages → Source: GitHub Actions | — |
+
+**Design della pipeline:**
+- **Permessi minimi:** `contents: read`, `pages: write`, `id-token: write` (OIDC per `deploy-pages`); nessun segreto, coerente con §12.2 ("nessuna variabile d'ambiente").
+- **Concorrenza:** gruppo `pages` con `cancel-in-progress: false` (un deploy in corso non viene annullato).
+- **Node 22 LTS in CI:** soddisfa sia Vite 8 (`^20.19.0 || >=22.12.0`) sia Vitest 5 (`>=22.12.0`); `engines.node` in `package.json` (>=20.19.0) e gli script di setup restano invariati (fuori scope della fase).
+- **Cache npm** abilitata su `actions/setup-node@v4` tramite `package-lock.json`.
+- **Nessun E2E in CI:** i test Playwright richiedono il download dei browser e non sono richiesti dal Task 7.1; restano eseguibili localmente con `npm run test:e2e`.
+- **Pubblicazione:** artifact = `dist/` così com'è (deploy via Actions → Jekyll non è coinvolto, quindi `.nojekyll` non è necessario).
+
+**Misura del bundle (criterio < 200 KB gzip):**
+
+| File in `dist/` | gzip |
+| --- | --- |
+| `assets/index-LeJmeTn4.js` | 99.66 KB |
+| `assets/index-CyZSH3et.css` | 3.96 KB |
+| `sw.js` | 0.91 KB |
+| `index.html` | 0.49 KB |
+| `manifest.webmanifest` | 0.31 KB |
+| `icon-512.svg` | 0.22 KB |
+| `icon-192.svg` | 0.21 KB |
+| `favicon.svg` | 0.21 KB |
+| **TOTALE (8 file)** | **105.97 KB** (raw 334.21 KB) |
+
+Esito: **105.97 KB gzip < 200 KB** → criterio soddisfatto con 94.03 KB di margine.
+
+**Verifica — criteri di uscita:**
+- ✅ `npm run typecheck` — nessun errore
+- ✅ `npm run lint` — nessun errore/warning
+- ✅ `npm run format:check` — tutti i file formattati (il YAML del workflow è parseabile e conforme a Prettier)
+- ✅ `npm run test` — 161/161 test verdi (10 file, +13 test di Fase 7)
+- ✅ `npm run build` — build verde in ~160 ms (`dist/` con base `/GeoSnap/`)
+- ✅ `npm run check:bundle` — OK, 105.97 KB gzip (exit 0); path di fallimento verificato con `--limit-kb 50` (exit 1) e argomento non valido (exit 2)
+- ✅ `npm run test:e2e` — 8/8 smoke test verdi (mobile Chromium, emulazione touch)
+- ✅ Artifact verificato localmente con `vite preview`: `GET /GeoSnap/` → 200 `text/html`; `/GeoSnap/assets/index-*.js`, `/GeoSnap/sw.js`, `/GeoSnap/manifest.webmanifest` → 200; tutti i riferimenti in `dist/index.html` hanno il prefisso `/GeoSnap/`
+
+**Note e limiti:**
+- La prima esecuzione reale del workflow avviene al push su `main`; richiede la configurazione una tantum **Settings → Pages → Build and deployment → Source: GitHub Actions** sul repository (impostazione non modificabile da codice).
+- L'URL canonico dell'app è `https://massimobottelli.github.io/GeoSnap/` (coerente con `base`, `start_url` e `scope`).
+- `workflow_dispatch` consente un deploy manuale anche da un branch diverso da `main` (utile per verifiche prima del merge).
+- Il check del bundle è eseguito in CI **dopo** la build e **prima** dell'upload: un bundle fuori soglia blocca la pubblicazione.
 
 ---
 
 ## Definizione di "Done" per MVP1
 
-* [ ] Tutte le Fasi (0–7) completate ed eseguite con successo.
+* [x] Tutte le Fasi (0–7) completate ed eseguite con successo.
 
 
-* [ ] Copertura test Vitest $\ge 90\%$ sui moduli in `src/game/**`.
+* [x] Copertura test Vitest $\ge 90\%$ sui moduli in `src/game/**`.
 
 
-* [ ] Test Playwright E2E superati in ambiente mobile emulato.
+* [x] Test Playwright E2E superati in ambiente mobile emulato.
 
 
-* [ ] Verifica del funzionamento offline e installabilità PWA su dispositivi mobili.
+* [ ] Verifica del funzionamento offline e installabilità PWA su dispositivi mobili. *(Richiede un dispositivo fisico: da eseguire manualmente su `https://massimobottelli.github.io/GeoSnap/` dopo il primo deploy — "Aggiungi a Home screen" + volo in modalità aereo.)*
 
 
-* [ ] Deploy automatico e funzionante su GitHub Pages.
+* [x] Deploy automatico e funzionante su GitHub Pages. *(Workflow `.github/workflows/deploy.yml` configurato e artifact validato localmente; la prima esecuzione avviene al push su `main`, con Settings → Pages → Source: GitHub Actions.)*
+
 
 
 * [ ] Tutti i 34 Requisiti Funzionali di MVP1 completamente rispettati e verificati.

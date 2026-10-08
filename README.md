@@ -47,6 +47,7 @@ il browser Chromium di Playwright ed eseguono le verifiche di qualità
 | `npm run test` / `npm run test:watch`     | Test unitari (Vitest).                           |
 | `npm run test:e2e`                        | Smoke test E2E (Playwright).                     |
 | `npm run gen:map`                         | Rigenera `src/data/europe-shapes.json` (Fase 1). |
+| `npm run check:bundle`                    | Verifica che `dist/` gzippato sia < 200 KB.      |
 
 ## Struttura
 
@@ -62,11 +63,28 @@ scripts/          # setup + pipeline dati geografici
 tests/            # unit/ (Vitest), e2e/ (Playwright)
 ```
 
+## Deploy (GitHub Pages)
+
+Il workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) esegue,
+a ogni push su `main` (o manualmente via _Run workflow_):
+
+1. `npm ci`;
+2. verifiche di qualità: `typecheck`, `lint`, `format:check`, `test`;
+3. `npm run build` → `dist/` statico con base path `/GeoSnap/`;
+4. `npm run check:bundle` → fallisce se il bundle gzippato supera 200 KB;
+5. pubblicazione di `dist/` su GitHub Pages (`actions/upload-pages-artifact` +
+   `actions/deploy-pages`).
+
+Configurazione una tantum sul repository: **Settings → Pages → Build and
+deployment → Source: GitHub Actions**.
+
 ## Stato
 
-**Fase 0 (setup e infrastruttura) completata:** scheletro compilabile, toolchain
-completa e ambienti di test operativi. Le funzionalità di gioco verranno
-introdotte nelle fasi successive.
+**MVP1 completato (Fasi 0–7).** Il gioco è funzionante (36 nazioni giocabili,
+drag & drop con snap, punteggio, schermata di riepilogo), coperto da test
+unitari ed E2E, e viene pubblicato automaticamente su GitHub Pages dal workflow
+`.github/workflows/deploy.yml` a ogni push su `main`. Bundle di produzione:
+~106 KB gzip (soglia 200 KB).
 
 ## Crediti
 
