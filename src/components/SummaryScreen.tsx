@@ -81,6 +81,7 @@ export function SummaryScreen({ state, nations, onPlayAgain }: SummaryScreenProp
 
       <button
         type="button"
+        data-testid="play-again"
         onClick={onPlayAgain}
         className="mt-4 rounded-xl bg-accent px-8 py-3 text-lg font-bold text-gray-900
           shadow-md transition-transform hover:scale-105 active:scale-95"

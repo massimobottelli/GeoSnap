@@ -207,6 +207,44 @@ describe('snap.ts — valutazione overlap di area (Fase 3, Task 3.1)', () => {
       // overlap = 100/100 = 1.0 ≥ 0.55
       expect(evaluateSnap(DUMMY_PATH, IDENTITY_TRANSFORM, TEST_BBOX, factory)).toBe(true);
     });
+
+    it('lancia errore quando getContext restituisce null', () => {
+      const nullContextFactory: CanvasFactory = (width, height) => ({
+        width,
+        height,
+        getContext: () => null,
+      });
+      expect(() =>
+        evaluateSnap(DUMMY_PATH, IDENTITY_TRANSFORM, TEST_BBOX, nullContextFactory),
+      ).toThrow('Canvas 2D context not available');
+    });
+
+    it('lancia errore quando il bbox ha dimensioni zero', () => {
+      const pixels = createPixelData(SIZE, [{ x: 0, y: 0, w: 50, h: 50 }]);
+      const factory = createMockCanvasFactory([pixels, pixels]);
+      const zeroBBox: BBox = [0, 0, 0, 0];
+      expect(() => evaluateSnap(DUMMY_PATH, IDENTITY_TRANSFORM, zeroBBox, factory)).toThrow(
+        'targetBBox has zero dimensions',
+      );
+    });
+
+    it('gestisce pixel con alpha parziale (non solo 0 o 255)', () => {
+      // Crea pixel con alpha = 128 (semi-trasparente): dovrebbe contare come opaco (alpha > 0)
+      const size = SIZE;
+      const targetData = new Uint8ClampedArray(size * size * 4);
+      const pieceData = new Uint8ClampedArray(size * size * 4);
+      // Riempi un'area con alpha = 128
+      for (let y = 10; y < 60; y++) {
+        for (let x = 10; x < 60; x++) {
+          const idx = (y * size + x) * 4;
+          targetData[idx + 3] = 128;
+          pieceData[idx + 3] = 128;
+        }
+      }
+      const factory = createMockCanvasFactory([targetData, pieceData]);
+      // overlap = 2500/2500 = 1.0 ≥ 0.55
+      expect(evaluateSnap(DUMMY_PATH, IDENTITY_TRANSFORM, TEST_BBOX, factory)).toBe(true);
+    });
   });
 
   // ── Coerenza con tuning.ts ────────────────────────────────────────────

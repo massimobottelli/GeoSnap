@@ -7,5 +7,15 @@ export default defineConfig({
     environment: 'node',
     include: ['tests/unit/**/*.{test,spec}.ts'],
     exclude: ['tests/e2e/**', 'node_modules/**', 'dist/**'],
+    coverage: {
+      provider: 'v8',
+      include: ['src/game/**'],
+      thresholds: {
+        lines: 90,
+        functions: 90,
+        branches: 80,
+        statements: 90,
+      },
+    },
   },
 });

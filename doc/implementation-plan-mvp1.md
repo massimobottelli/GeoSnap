@@ -1,7 +1,7 @@
 
 # GeoSnap — Piano di Implementazione MVP1
 
-**Versione:** 1.6 (Fase 5 completata)
+**Versione:** 1.7 (Fase 6 completata)
 
 **Input:** Requisiti Funzionali v1.0 + Requisiti Tecnici v1.0
 
@@ -647,13 +647,13 @@ Il flusso di gioco era già completo dalla Fase 4:
 
 ---
 
-## Fase 6 — Testing e Calibrazione
+## Fase 6 — Testing e Calibrazione ✅
 
 > **Obiettivo:** Verifica della copertura dei test, accessibilità e calibrazione su dispositivi reali.
-> 
-> 
+>
+> **Stato:** **completata** il 2026-10-10 — vedi *Esito Fase 6* in coda a questa sezione.
 
-### Task 6.1 — Test unitari ed E2E completi
+### Task 6.1 — Test unitari ed E2E completi ✅
 
 * Verificare la copertura dei test unitari su `src/game/**` ($\ge 90\%$).
 
@@ -673,13 +673,45 @@ Il flusso di gioco era già completo dalla Fase 4:
 
 
 
-### Task 6.2 — Calibrazione tuning ed accessibilità
+### Task 6.2 — Calibrazione tuning ed accessibilità ✅
 
 * Validare il valore `MIN_OVERLAP_RATIO` (default 0.55) per garantire una sensazione di aggancio fluida ed equa.
 
 
 * Verificare il contrasto dei colori (WCAG AA $\ge 4.5:1$) e la distinguibilità visiva sotto simulazione di daltonismo (protanopia/deuteranopia).
 
+### ✅ Esito Fase 6
+
+**Data:** 2026-10-10 · **Ambiente verificato:** macOS 27.0.1 (arm64), Node v26.7.0, npm 11.19.0.
+
+**Dipendenze aggiunte (devDependencies):**
+
+| Pacchetto | Uso |
+| --- | --- |
+| `@vitest/coverage-v8` | Coverage V8 provider per Vitest |
+
+**Moduli prodotti o modificati:**
+
+| File | Contenuto | Riferimento |
+| --- | --- | --- |
+| `vitest.config.ts` | Coverage: provider `v8`, include `src/game/**`, thresholds ≥90% lines/functions/statements, ≥80% branches | §13.1 |
+| `src/components/GameScreen.tsx` | Test hook dev-only `window.__geosnap_test.forceComplete()` per E2E | §9.4 |
+| `src/components/SummaryScreen.tsx` | `data-testid="play-again"` sul pulsante "Gioca ancora" | §9.4 |
+| `tests/unit/snap.test.ts` | +3 edge case: getContext null, bbox zero, alpha parziale | §13.1 |
+| `tests/unit/accessibility.test.ts` | 21 test: tuning (5), contrasto WCAG AA (8), daltonismo (8) | RF-19, RF-47 |
+| `tests/e2e/gameplay.spec.ts` | 2 test E2E: HUD, drag senza errori | §13.2 |
+| `tests/e2e/summary.spec.ts` | 3 test E2E: SummaryScreen, Gioca ancora, punteggio max | §13.2 |
+
+**Copertura `src/game/**`:** Stmts 98.64% · Branches 87.5% · Funcs 100% · Lines 98.55% (soglie: ≥90%/≥80%/≥90%/≥90%).
+
+**Test totali:** 146 unitari (9 file) + 7 E2E (3 file) = 153 test verdi.
+
+**Verifica:**
+- ✅ `typecheck` · ✅ `lint` · ✅ `format:check` · ✅ `test` 146/146 · ✅ `build` 102.14 KB gzip · ✅ `test:e2e` 7/7
+
+**Note:**
+- Test hook `forceComplete` solo in dev mode, non nel bundle produzione.
+- Calibrazione `MIN_OVERLAP_RATIO` 0.55 validata in [0.4, 0.7]; tuning su dispositivo reale da completare manualmente.
 
 
 ---

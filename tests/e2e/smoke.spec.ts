@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 /**
- * Smoke test E2E (aggiornato per Fase 4).
+ * Smoke test E2E (aggiornato per Fase 6).
  *
  * Verifica che l'applicazione si avvii correttamente in un contesto mobile con
  * emulazione touch e che gli elementi principali del gioco siano visibili.

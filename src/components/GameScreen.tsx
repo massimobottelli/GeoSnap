@@ -8,7 +8,7 @@
  * Riferimento: §9.4, §7.1 dei Requisiti Tecnici MVP1.
  */
 
-import { useState, useRef, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useMapZoom } from '../hooks/useMapZoom';
 import { MapView } from './MapView';
 import { Tray } from './Tray';
@@ -78,6 +78,31 @@ export function GameScreen() {
 
   const pieceRef = useRef<SVGPathElement | null>(null);
   const isDraggingRef = useRef(false);
+
+  // Dev-only test hook for E2E: allows force-completing the game via
+  // window.__geosnap_test.forceComplete(). No-op in production builds.
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const win = window as unknown as Record<string, Record<string, (...args: unknown[]) => void>>;
+    win.__geosnap_test = {
+      forceComplete: () => {
+        setGameState((prev) => {
+          let state = prev;
+          for (const id of state.trayOrder) {
+            const ns = state.placed[id];
+            if (ns !== undefined && !ns.placed) {
+              state = registerPlace(state, id);
+            }
+          }
+          return state;
+        });
+        setGameFinished(true);
+      },
+    };
+    return () => {
+      delete win.__geosnap_test;
+    };
+  }, [playableIds]);
 
   const { svgRef, svgCallbackRef, mapRootRef, zoomTransformRef } = useMapZoom({
     isDragActive: isDraggingRef.current,
