@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { tuning } from '../../src/tuning';
+import { tuning, DEBUG_SHOW_CENTROIDS } from '../../src/tuning';
 
 /**
  * Test per `tuning.ts` — parametri di tuning centralizzati (Fase 2, Task 2.1).
@@ -122,5 +122,11 @@ describe('tuning', () => {
     expect(tuning.anim.PICKUP_MS).toBeGreaterThan(0);
     expect(tuning.anim.SNAP_MS).toBeGreaterThan(0);
     expect(tuning.anim.RETURN_MS).toBeGreaterThan(0);
+  });
+
+  // ── Debug ──────────────────────────────────────────────────────────────
+
+  it('DEBUG_SHOW_CENTROIDS è un booleano', () => {
+    expect(typeof DEBUG_SHOW_CENTROIDS).toBe('boolean');
   });
 });

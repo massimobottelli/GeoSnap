@@ -43,4 +43,11 @@ export const tuning = Object.freeze({
   }),
 } as const);
 
+/**
+ * Flag di debug: mostra crocette rosse sui centroidi delle nazioni giocabili.
+ * Non fa parte di `tuning` (non frozen) così può essere toggleato a runtime
+ * dalla console: `window.__geosnap_debug_centroids = false`.
+ */
+export const DEBUG_SHOW_CENTROIDS = true;
+
 export type Tuning = typeof tuning;
