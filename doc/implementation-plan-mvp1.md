@@ -1,7 +1,7 @@
 
 # GeoSnap — Piano di Implementazione MVP1
 
-**Versione:** 1.8 (Fase 7 completata — MVP1 completo)
+**Versione:** 1.9 (Fase 7 completata — MVP1 completo, deploy GitHub Pages verificato in produzione)
 
 **Input:** Requisiti Funzionali v1.0 + Requisiti Tecnici v1.0
 
@@ -777,9 +777,11 @@ Esito: **105.97 KB gzip < 200 KB** → criterio soddisfatto con 94.03 KB di marg
 - ✅ `npm run check:bundle` — OK, 105.97 KB gzip (exit 0); path di fallimento verificato con `--limit-kb 50` (exit 1) e argomento non valido (exit 2)
 - ✅ `npm run test:e2e` — 8/8 smoke test verdi (mobile Chromium, emulazione touch)
 - ✅ Artifact verificato localmente con `vite preview`: `GET /GeoSnap/` → 200 `text/html`; `/GeoSnap/assets/index-*.js`, `/GeoSnap/sw.js`, `/GeoSnap/manifest.webmanifest` → 200; tutti i riferimenti in `dist/index.html` hanno il prefisso `/GeoSnap/`
+- ✅ **Deploy reale su GitHub Pages verificato il 2026-10-08:** run #2 (`workflow_dispatch`, commit `f12f9e0`, 19:31–19:32 UTC) → entrambi i job `success` (`build` + `deploy`, step *Pubblica su GitHub Pages*); pagina pubblicata e asset raggiungibili (HTTP 200)
 
 **Note e limiti:**
-- La prima esecuzione reale del workflow avviene al push su `main`; richiede la configurazione una tantum **Settings → Pages → Build and deployment → Source: GitHub Actions** sul repository (impostazione non modificabile da codice).
+- **Esecuzione reale verificata il 2026-10-08 (UTC).** Il run #1 (`push`, 19:20) è fallito **solo** nel job `deploy` con *"Get Pages site failed. Please verify that the repository has Pages enabled and configured to build using GitHub Actions"*: il repository non aveva ancora Pages abilitato. Dopo la configurazione una tantum **Settings → Pages → Build and deployment → Source: GitHub Actions**, il run #2 (`workflow_dispatch`, 19:31–19:32) è **verde**: job `build` (`npm ci`, typecheck, lint, `format:check`, test, build, `check:bundle`, upload artifact) e job `deploy` (*Pubblica su GitHub Pages*) entrambi `success`.
+- Il sito è pubblicato e raggiungibile su `https://massimobottelli.github.io/GeoSnap/`: HTTP 200 per `/`, `manifest.webmanifest`, `sw.js`, `favicon.svg`, `icon-192.svg`, `icon-512.svg`, `assets/index-LeJmeTn4.js`, `assets/index-CyZSH3et.css`. L'`index.html` servito è di 1052 byte, identico al `dist/index.html` della build locale (conferma che il contenuto pubblicato proviene dall'artifact di `dist/`).
 - L'URL canonico dell'app è `https://massimobottelli.github.io/GeoSnap/` (coerente con `base`, `start_url` e `scope`).
 - `workflow_dispatch` consente un deploy manuale anche da un branch diverso da `main` (utile per verifiche prima del merge).
 - Il check del bundle è eseguito in CI **dopo** la build e **prima** dell'upload: un bundle fuori soglia blocca la pubblicazione.
@@ -797,10 +799,10 @@ Esito: **105.97 KB gzip < 200 KB** → criterio soddisfatto con 94.03 KB di marg
 * [x] Test Playwright E2E superati in ambiente mobile emulato.
 
 
-* [ ] Verifica del funzionamento offline e installabilità PWA su dispositivi mobili. *(Richiede un dispositivo fisico: da eseguire manualmente su `https://massimobottelli.github.io/GeoSnap/` dopo il primo deploy — "Aggiungi a Home screen" + volo in modalità aereo.)*
+* [ ] Verifica del funzionamento offline e installabilità PWA su dispositivi mobili. *(Richiede un dispositivo fisico: l'app è già online su `https://massimobottelli.github.io/GeoSnap/` — "Aggiungi a Home screen" + volo in modalità aereo per confermare il funzionamento offline.)*
 
 
-* [x] Deploy automatico e funzionante su GitHub Pages. *(Workflow `.github/workflows/deploy.yml` configurato e artifact validato localmente; la prima esecuzione avviene al push su `main`, con Settings → Pages → Source: GitHub Actions.)*
+* [x] Deploy automatico e funzionante su GitHub Pages. *(Verificato il 2026-10-08: run #1 fallito perché Pages non era abilitato; dopo Settings → Pages → Build and deployment → Source: GitHub Actions, il run #2 `workflow_dispatch` è verde in 46 s e il sito è live su `https://massimobottelli.github.io/GeoSnap/` — `index.html`, `manifest.webmanifest`, `sw.js`, icone e asset JS/CSS tutti HTTP 200.)*
 
 
 

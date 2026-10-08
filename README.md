@@ -75,8 +75,8 @@ a ogni push su `main` (o manualmente via _Run workflow_):
 5. pubblicazione di `dist/` su GitHub Pages (`actions/upload-pages-artifact` +
    `actions/deploy-pages`).
 
-Configurazione una tantum sul repository: **Settings → Pages → Build and
-deployment → Source: GitHub Actions**.
+Configurazione una tantum sul repository (già attiva): **Settings → Pages → Build
+and deployment → Source: GitHub Actions**.
 
 ## Stato
 
@@ -85,6 +85,10 @@ drag & drop con snap, punteggio, schermata di riepilogo), coperto da test
 unitari ed E2E, e viene pubblicato automaticamente su GitHub Pages dal workflow
 `.github/workflows/deploy.yml` a ogni push su `main`. Bundle di produzione:
 ~106 KB gzip (soglia 200 KB).
+
+**App online:** [massimobottelli.github.io/GeoSnap](https://massimobottelli.github.io/GeoSnap/)
+— deploy verificato il 2026-10-08 (workflow "Build e deploy" verde; `index.html`,
+`manifest.webmanifest`, `sw.js`, icone e asset JS/CSS tutti HTTP 200).
 
 ## Crediti
 
